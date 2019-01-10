@@ -111,7 +111,7 @@ fclose(FID);
 
 C_to_kg=0.00398;%*Q %0.0813 density[kg/m^3]*2Q*R*298K/1 atm    RT! m^3/mol
 %% GUI
-ziv_version=1.01;
+ziv_version=1.03;
 if exist('logo.png')==0
     emd_logo(1:68,1:443,1:3)=255;
 else
@@ -1067,37 +1067,37 @@ end
 delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
 %% show Q&tau for different measurements
 
-qtau_opts=fitoptions( 'Method', 'NonlinearLeastSquares' );
-qtau_opts.Display = 'Off';
-qtau_opts.Lower = [0 0];
-qtau_opts.StartPoint = [initial_Q_sat initial_tau_guess];
-qtau_opts.Upper = [1000 5000];
-ft_qtau_q = fittype( 'q_sat*(1-exp(-(1/tau)*x))', 'independent', 'x', 'dependent', 'y');
-ft_qtau_q_linear = fittype( 'a*x+b', 'independent', 'x', 'dependent', 'y');
-clear fit_qtau_qchrg fit_qtau_qdischrg fit_qtau_time
-fit_qtau_time=charge_times;
-fit_qtau_qchrg=Q_tau_table.Q_sat_by_charging_time;
-fit_qtau_qdischrg=Q_tau_table.Q_sat_by_discharging_time;
-
-[fitresult_qtau_qchrg, gof_qtau_qchrg] = fit( fit_qtau_time, fit_qtau_qchrg, ft_qtau_q,qtau_opts);
-[fitresult_qtau_disqchrg, gof_qtau_disqchrg] = fit( fit_qtau_time, fit_qtau_qdischrg, ft_qtau_q,qtau_opts);
-
-fit_qsat_figure=figure;
-fit_function=@(a,b,t) a*(1-exp(-t/b));
-t_for_calc_plots=linspace(0,Q_tau_table.times(end),1000);
-hold on
-q_sat_by_chrg_plot=plot(Q_tau_table.times,Q_tau_table.Q_sat_by_charging_time,'o-','DisplayName','Q_{sat} fitted by constant charging time calculated');
-q_sat_by_chrg_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_qtau_qchrg.q_sat,fitresult_qtau_qchrg.tau,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by constant charging time','Color',q_sat_by_chrg_plot.Color);
-
-q_sat_by_dischrg_plot=plot(Q_tau_table.times,Q_tau_table.Q_sat_by_discharging_time,'o-','DisplayName','Q_{sat} fitted by constant discharging time');
-q_sat_by_dischrg_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_qtau_disqchrg.q_sat,fitresult_qtau_disqchrg.tau,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by constant discharging time - calculated','Color',q_sat_by_dischrg_plot.Color);
-
-q_sat_by_diag_plot=plot(Q_tau_table.times,fit_func_diag(fitresult_diag.a,fitresult_diag.b,Q_tau_table.times),'o-','DisplayName','Q_{sat} fitted by the diagonal');
-q_sat_by_diag_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_diag.a,fitresult_diag.b,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by gradient','Color',q_sat_by_diag_plot.Color);
-legend show
-xticks(Q_tau_table.times)
-xlabel 'time of charging [s]'
-ylabel 'Charge [C]'
-hold off
-savefig(fit_qsat_figure,[where_to_save_figures 'fitting figure.fig'])
-
+% qtau_opts=fitoptions( 'Method', 'NonlinearLeastSquares' );
+% qtau_opts.Display = 'Off';
+% qtau_opts.Lower = [0 0];
+% qtau_opts.StartPoint = [initial_Q_sat initial_tau_guess];
+% qtau_opts.Upper = [1000 5000];
+% ft_qtau_q = fittype( 'q_sat*(1-exp(-(1/tau)*x))', 'independent', 'x', 'dependent', 'y');
+% ft_qtau_q_linear = fittype( 'a*x+b', 'independent', 'x', 'dependent', 'y');
+% clear fit_qtau_qchrg fit_qtau_qdischrg fit_qtau_time
+% fit_qtau_time=charge_times;
+% fit_qtau_qchrg=Q_tau_table.Q_sat_by_charging_time;
+% fit_qtau_qdischrg=Q_tau_table.Q_sat_by_discharging_time;
+% 
+% [fitresult_qtau_qchrg, gof_qtau_qchrg] = fit( fit_qtau_time, fit_qtau_qchrg, ft_qtau_q,qtau_opts);
+% [fitresult_qtau_disqchrg, gof_qtau_disqchrg] = fit( fit_qtau_time, fit_qtau_qdischrg, ft_qtau_q,qtau_opts);
+% 
+% fit_qsat_figure=figure;
+% fit_function=@(a,b,t) a*(1-exp(-t/b));
+% t_for_calc_plots=linspace(0,Q_tau_table.times(end),1000);
+% hold on
+% q_sat_by_chrg_plot=plot(Q_tau_table.times,Q_tau_table.Q_sat_by_charging_time,'o-','DisplayName','Q_{sat} fitted by constant charging time calculated');
+% q_sat_by_chrg_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_qtau_qchrg.q_sat,fitresult_qtau_qchrg.tau,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by constant charging time','Color',q_sat_by_chrg_plot.Color);
+% 
+% q_sat_by_dischrg_plot=plot(Q_tau_table.times,Q_tau_table.Q_sat_by_discharging_time,'o-','DisplayName','Q_{sat} fitted by constant discharging time');
+% q_sat_by_dischrg_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_qtau_disqchrg.q_sat,fitresult_qtau_disqchrg.tau,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by constant discharging time - calculated','Color',q_sat_by_dischrg_plot.Color);
+% 
+% q_sat_by_diag_plot=plot(Q_tau_table.times,fit_func_diag(fitresult_diag.a,fitresult_diag.b,Q_tau_table.times),'o-','DisplayName','Q_{sat} fitted by the diagonal');
+% q_sat_by_diag_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_diag.a,fitresult_diag.b,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by gradient','Color',q_sat_by_diag_plot.Color);
+% legend show
+% xticks(Q_tau_table.times)
+% xlabel 'time of charging [s]'
+% ylabel 'Charge [C]'
+% hold off
+% savefig(fit_qsat_figure,[where_to_save_figures 'fitting figure.fig'])
+% 
