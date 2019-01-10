@@ -221,6 +221,9 @@ waitfor(uif)
 load('vars')
 number_of_peaks=str2num(number_of_peaks_ui.String);
 q_terms_to_avg=str2num(q_terms_to_avg_ui.String);
+if q_terms_to_avg==number_of_peaks
+    q_terms_to_avg=q_terms_to_avg-1;
+end
 electrode_area=str2num(electrode_area_ui.String);
 uif.Visible='off';
 define_treshold_I_for_maximum_num=str2num(define_treshold_I_for_maximum.String)*1E-3;
@@ -285,15 +288,16 @@ else
     clear temp
     %% setting parameters and getting the graphical input
     %close gcf
+    dt=tt(2)-tt(1);
     clear local_max_ind local_max_tt 
-    dist=tt(end)/10; %distance from each point
-    pts=linspace(10/0.2,tt(end)*0.9,number_of_peaks); %50 is 10 seconds of open cell * interval between 
+    dist=tt(end)/number_of_peaks; %distance from each point
+    pts=linspace(10/dt,tt(end)*(0.7+number_of_peak/5),number_of_peaks); %50 is 10 seconds of open cell * interval between 
     x_pts=sort(pts); %get only the x values add (:,1) for ginput
     x_pts_ind=knnsearch(tt,x_pts');    
 
 %% findind the local maximum points
 threshold_for_first_max=1E-2; %mA
-threshold_for_first_max=define_treshold_I_for_maximum_num
+threshold_for_first_max=define_treshold_I_for_maximum_num;
 clear temp_tt temp_II temp_tt_ind     
 i=1;
 search_range=0.05;
@@ -325,7 +329,7 @@ for i=2:number_of_peaks %looping through all points we chose
 
 %% findind the charge & discharge times
     %for j=1:number_of_peaks
-    minimal_threshold=1E-2;
+    minimal_threshold=define_treshold_I_for_maximum_num;
     j=1;
     first_below_zero=find(II(local_max_ind(j):end)<-minimal_threshold,1);
     first_below_zero_abs_ind=local_max_ind(j)+first_below_zero(1);
@@ -1052,6 +1056,15 @@ if save_Q_norm_to_Qsat_figure.Value==1
 end
 end
 
+
+%% open the data table
+if show_final_data_checkbox.Value==1
+    show_table_figure=uifigure;
+    show_table_table=uitable('Parent',show_table_figure,'Data',final_data,'Position',get(show_table_figure,'Position'));
+    show_table_table.Position(1:2)=0;
+end
+%% delete all the function files
+delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
 %% show Q&tau for different measurements
 
 qtau_opts=fitoptions( 'Method', 'NonlinearLeastSquares' );
@@ -1088,11 +1101,3 @@ ylabel 'Charge [C]'
 hold off
 savefig(fit_qsat_figure,[where_to_save_figures 'fitting figure.fig'])
 
-%% open the data table
-if show_final_data_checkbox.Value==1
-    show_table_figure=uifigure;
-    show_table_table=uitable('Parent',show_table_figure,'Data',final_data,'Position',get(show_table_figure,'Position'));
-    show_table_table.Position(1:2)=0;
-end
-%% delete all the function files
-delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
