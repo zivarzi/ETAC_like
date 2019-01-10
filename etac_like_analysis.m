@@ -227,7 +227,7 @@ end
 electrode_area=str2num(electrode_area_ui.String);
 uif.Visible='off';
 define_treshold_I_for_maximum_num=str2num(define_treshold_I_for_maximum.String)*1E-3;
-
+open_cell_time=10; %[s]
 %% Get csv files
 filelist=dir(path_of_folder);
 file_num=max(size(filelist));
@@ -291,7 +291,7 @@ else
     dt=tt(2)-tt(1);
     clear local_max_ind local_max_tt 
     dist=tt(end)/number_of_peaks; %distance from each point
-    pts=linspace(10/dt,tt(end)*(0.7+number_of_peak/5),number_of_peaks); %50 is 10 seconds of open cell * interval between 
+    pts=linspace(open_cell_time/dt,tt(end)*(0.7+.1*number_of_peaks/5),number_of_peaks); %50 is 10 seconds of open cell * interval between 
     x_pts=sort(pts); %get only the x values add (:,1) for ginput
     x_pts_ind=knnsearch(tt,x_pts');    
 
