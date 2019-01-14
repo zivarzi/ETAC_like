@@ -197,7 +197,8 @@ is_etac_checkbox=uicontrol(uiparameters,'Style','checkbox','String','Is this E-T
 
 advanced_panel=uipanel(advanced_tab,'title','Advanced options','units','normalized','Position',[0 .1 1 0.9]);
 panel_name=advanced_panel;
-save_fit_figure=uicontrol(advanced_panel,'Style','checkbox','String','Save Q matrix diagonal fitting figure','Value',1,'Units','normalized','Position',[x_pos initial_height text_w text_h]);
+smooth_data_ui=uicontrol(advanced_panel,'Style','checkbox','String','Smooth noisy data','Value',1,'Units','normalized','Position',[x_pos initial_height text_w text_h]);
+save_fit_figure=uicontrol(advanced_panel,'Style','checkbox','String','Save Q matrix diagonal fitting figure','Value',1,'Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h]);
 save_Q_norm_to_Qmax_figure=uicontrol(advanced_panel,'Style','checkbox','String','Save Q normalized to Q maximum figure','Value',1,'Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h]);
 save_Q_norm_to_Qsat_figure=uicontrol(advanced_panel,'Style','checkbox','String','Save Q normalized to Q saturation figure','Value',1,'Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h]);
 save_Q_data.checkbox=uicontrol(advanced_panel,'Style','checkbox','String','Save Q data to files','Value',0,'Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h]);
@@ -243,7 +244,6 @@ for i=1:file_num
 end
 csv_list(1,:)=[]; %clear the first entry used to create the table
 data=csv_list;
-clear csv_list;
 file_number=size(data); file_number=file_number(1); %How mant csv files in the folder
 %% creating unified title to figures
 figure_title=['Sample ' sample_name_ui.String ', ' time_of_deposition_ui.String ' hr, ' charge_potential_ui.String 'V'];
@@ -280,70 +280,102 @@ if is_etac_checkbox.Value==1
         final_data.h2_kg_day=final_data.Q_charge_avg.*C_to_kg.*(60*60*24./(final_data.charge_time+final_data.discharge_time+10+10));
         final_data.filename(main_i)=data.filename(main_i);
 else
+end
     demixing_time=0;
     for main_i=1:file_number
     temp=cell2mat(data.data(main_i));
     clear tt vv II
     tt=temp(:,1); II=temp(:,2); vv=temp(:,3);
-    clear temp
-    %% setting parameters and getting the graphical input
-    %close gcf
+    clear temp    
     dt=tt(2)-tt(1);
     clear local_max_ind local_max_tt 
+%% checking for idf files
+idf_filename=char(data.filepath{main_i,1});
+idf_filename=[idf_filename(1:end-4) '.idf'];
+if exist(idf_filename)~=0
+    FID=fopen(idf_filename);
+    idf_file=fscanf(FID,'%c');
+    fclose(FID);
+    for i=1:5
+    txtind=strfind(idf_file,['Stages.Properties[' num2str(i) '].Duration='])+size(['Stages.Properties[' num2str(i) '].Duration='],2);
+    txtind_end=txtind+1;    
+        while str2num(idf_file(txtind:txtind_end))>0
+            txtind_end=txtind_end+1;
+        end
+        if i==2
+            charge_time=str2num(idf_file(txtind:txtind_end-1));
+        elseif i==4
+            discharge_time=str2num(idf_file(txtind:txtind_end-1));
+        else
+            open_cell_time(i)=str2num(idf_file(txtind:txtind_end-1));
+        end
+        
+    end
+    %starting maximum & minimum
+	local_max_ind(1)=open_cell_time(1)/dt;
+    local_max_tt(1)=tt(local_max_ind(1));
+    cycle_time=sum(open_cell_time)+charge_time+discharge_time;
+    while local_max_ind(end)<numel(tt);
+        local_max_ind(end+1)=local_max_ind(end)+cycle_time/dt;
+        local_max_tt(end+1)=tt(local_max_ind(1));
+    end
+    open_cell_time=open_cell_time(1);
+else
+        %% setting parameters and getting the graphical input
     dist=tt(end)/number_of_peaks; %distance from each point
     pts=linspace(open_cell_time/dt,tt(end)*(0.7+.1*number_of_peaks/5),number_of_peaks); %50 is 10 seconds of open cell * interval between 
     x_pts=sort(pts); %get only the x values add (:,1) for ginput
     x_pts_ind=knnsearch(tt,x_pts');    
-
-%% findind the local maximum points
-threshold_for_first_max=1E-2; %mA
-threshold_for_first_max=define_treshold_I_for_maximum_num;
-clear temp_tt temp_II temp_tt_ind     
-i=1;
-search_range=0.05;
-temp_tt_ind=1:numel(tt)*search_range;%round(x_pts(i)+dist);
-temp_II=II(temp_tt_ind);
-good_temp_ind=find(min(abs(find(II==max(temp_II))-x_pts_ind(i))));
-temp_ind=find(temp_II>threshold_for_first_max);
-local_max_ind(i)=temp_ind(good_temp_ind);
-local_max_tt(i)=tt(local_max_ind(i));
-for i=2:number_of_peaks %looping through all points we chose
-        clear temp_tt temp_II temp_tt_ind     
-        if i==1
-        else
-            lower_limit=max(1,x_pts_ind(i)-dist);
-            upper_limit=min(x_pts_ind(i)+dist,numel(II));
-            temp_tt_ind=lower_limit+find(II(lower_limit:upper_limit)<threshold_for_first_max,1)-2:upper_limit;
-            temp_II=II(temp_tt_ind);
-            % getting the nearest index to the one now on focus
-            good_temp_ind=find(min(abs(find(II==max(temp_II))-x_pts_ind(i))));
-            temp_ind=find(II(temp_tt_ind)>threshold_for_first_max,1)+temp_tt_ind(1);
-            true_ind=and(temp_ind>lower_limit,temp_ind<upper_limit);
-            if isempty(find(min(abs(find(II==max(temp_II))-x_pts_ind(i))), 1))
-                true_ind=1;
+    %% findind the local maximum points
+    threshold_for_first_max=1E-2; %mA
+    threshold_for_first_max=define_treshold_I_for_maximum_num;
+    clear temp_tt temp_II temp_tt_ind     
+    i=1;
+    search_range=0.05;
+    temp_tt_ind=1:numel(tt)*search_range;%round(x_pts(i)+dist);
+    temp_II=II(temp_tt_ind);
+    good_temp_ind=find(min(abs(find(II==max(temp_II))-x_pts_ind(i))));
+    temp_ind=find(temp_II>threshold_for_first_max);
+    local_max_ind(i)=temp_ind(good_temp_ind);
+    local_max_tt(i)=tt(local_max_ind(i));
+    for i=2:number_of_peaks %looping through all points we chose
+            clear temp_tt temp_II temp_tt_ind     
+            if i==1
+            else
+                lower_limit=max(1,x_pts_ind(i)-dist);
+                upper_limit=min(x_pts_ind(i)+dist,numel(II));
+                temp_tt_ind=lower_limit+find(II(lower_limit:upper_limit)<threshold_for_first_max,1)-2:upper_limit;
+                temp_II=II(temp_tt_ind);
+                % getting the nearest index to the one now on focus
+                good_temp_ind=find(min(abs(find(II==max(temp_II))-x_pts_ind(i))));
+                temp_ind=find(II(temp_tt_ind)>threshold_for_first_max,1)+temp_tt_ind(1);
+                true_ind=and(temp_ind>lower_limit,temp_ind<upper_limit);
+                if isempty(find(min(abs(find(II==max(temp_II))-x_pts_ind(i))), 1))
+                    true_ind=1;
+                end
+                local_max_ind(i)=min(temp_ind(true_ind)); %Taking the first temp index
+                local_max_tt(i)=tt(local_max_ind(i));
             end
-            local_max_ind(i)=min(temp_ind(true_ind)); %Taking the first temp index
-            local_max_tt(i)=tt(local_max_ind(i));
         end
-    end
 
-%% findind the charge & discharge times
-    %for j=1:number_of_peaks
-    minimal_threshold=define_treshold_I_for_maximum_num;
-    j=1;
-    first_below_zero=find(II(local_max_ind(j):end)<-minimal_threshold,1);
-    first_below_zero_abs_ind=local_max_ind(j)+first_below_zero(1);
-    charge_time_temp=tt(first_below_zero_abs_ind)-tt(local_max_ind(j));
-    charge_time=round(charge_time_temp/100)*100;
-    first_below_zero_dis=find(II(local_max_ind(j)+first_below_zero:end)<minimal_threshold);
-    start_of_discharge=first_below_zero_abs_ind+first_below_zero_dis(1);
-    first_above_zero=find(II(start_of_discharge:end)>minimal_threshold);
-    end_of_dishcharge=start_of_discharge+first_above_zero(1);
-    discharge_time=tt(end_of_dishcharge)-tt(start_of_discharge);
-    discharge_time=floor(discharge_time/100)*100;
-    dt=local_max_tt(i)/local_max_ind(i); 
-    open_cell_time=find(II>minimal_threshold);
-    open_cell_time=(open_cell_time(1)-1)*dt; %[s]
+    %% findind the charge & discharge times
+        %for j=1:number_of_peaks
+        minimal_threshold=define_treshold_I_for_maximum_num;
+        j=1;
+        first_below_zero=find(II(local_max_ind(j):end)<-minimal_threshold,1);
+        first_below_zero_abs_ind=local_max_ind(j)+first_below_zero(1);
+        charge_time_temp=tt(first_below_zero_abs_ind)-tt(local_max_ind(j));
+        charge_time=round(charge_time_temp/100)*100;
+        first_below_zero_dis=find(II(local_max_ind(j)+first_below_zero:end)<minimal_threshold);
+        start_of_discharge=first_below_zero_abs_ind+first_below_zero_dis(1);
+        first_above_zero=find(II(start_of_discharge:end)>minimal_threshold);
+        end_of_dishcharge=start_of_discharge+first_above_zero(1);
+        discharge_time=tt(end_of_dishcharge)-tt(start_of_discharge);
+        discharge_time=floor(discharge_time/100)*100;
+        dt=local_max_tt(i)/local_max_ind(i); 
+        open_cell_time=find(II>minimal_threshold);
+        open_cell_time=(open_cell_time(1)-1)*dt; %[s]
+end
     %% writing the charge and discharge time to the table
     lower_measurement_time=50;
     if or(charge_time<lower_measurement_time,discharge_time<lower_measurement_time)
@@ -447,10 +479,10 @@ end
             I_plot=plot(tt,II,'DisplayName','I(t)');
             xlabel('time [s]')
             ylabel('Current [A]')
-            selected_plot=plot(tt(x_pts_ind),II(x_pts_ind),'o','DisplayName','Selected points');
+%            selected_plot=plot(tt(x_pts_ind),II(x_pts_ind),'o','DisplayName','Selected points');
             charge_area=area(tt(t_to_int(i,:)),II(t_to_int(i,:)),'FaceColor',[0.1460    0.6091    0.9079],'EdgeColor','none','DisplayName','Area integrated for charge');
             discharge_area=area(tt(t_to_int_dis(i,:)),II(t_to_int_dis(i,:)),'FaceColor',[0.8203    0.7498    0.1535],'EdgeColor','none','DisplayName','Area integrated for discharge');
-            legend(I_plot.DisplayName, selected_plot.DisplayName, charge_area.DisplayName, discharge_area.DisplayName,'Location','eastoutside')
+            legend(I_plot.DisplayName, charge_area.DisplayName, discharge_area.DisplayName,'Location','eastoutside')
         end
         hold off
         title([figure_title ' Charge time ' num2str(charge_time) ' || discharge time ' num2str(discharge_time)])
@@ -485,7 +517,7 @@ end
         saveas(verification_figure,[where_to_save_output '\verification\' ' ' sample_name_ui.String ' verification' ' c' num2str(charge_time) ' d'  num2str(discharge_time)],'png')
     end
 end
-end
+%end
 %% writing the data to excel file
 name_of_excel_data_file=[where_to_save_output '\' sample_name_ui.String ' ' charge_potential_ui.String 'V ' time_of_deposition_ui.String  ' hr ' 'data table.xlsx'];
 writetable(final_data,name_of_excel_data_file,'Sheet','Data table')
