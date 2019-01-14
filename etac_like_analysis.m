@@ -1099,7 +1099,7 @@ R_parameter=Q_sat/tauc*60; %[C/min]
 R_table=table(Qsat,tauc,R_parameter);
 writetable(R_table,name_of_excel_data_file,'Sheet','R parameter');
 if exist('RemoveSheet123')~=0
-    RemoveSheet123(name_of_excel_data_file)
+    RemoveSheet123(name_of_excel_data_file);
 end
 %% delete all the function files
 delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
