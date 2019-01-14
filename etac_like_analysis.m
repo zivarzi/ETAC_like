@@ -487,10 +487,9 @@ end
 end
 end
 
-
+name_of_excel_data_file=[where_to_save_output '\' sample_name_ui.String ' ' charge_potential_ui.String 'V ' time_of_deposition_ui.String  ' hr ' 'data table.xlsx'];
 %% writing the data to excel file
-writetable(final_data,[where_to_save_output '\' sample_name_ui.String ' ' charge_potential_ui.String 'V ' time_of_deposition_ui.String  ' hr ' 'data table.xlsx'])
-%writetable(final_data,'1.xlsx')
+writetable(final_data,name_of_excel_data_file)
 where_to_save_output(find(where_to_save_output=='.'))='_';
 %% building the heatmap data
 charge_heat=unique(final_data.charge_time);
@@ -1063,6 +1062,12 @@ if show_final_data_checkbox.Value==1
     show_table_table=uitable('Parent',show_table_figure,'Data',final_data,'Position',get(show_table_figure,'Position'));
     show_table_table.Position(1:2)=0;
 end
+
+%% saving the data in organized way
+Q_excel=array2table(Q_new);
+R_parameter=Q_sat/tauc*60; %[C/min]
+R_table=table(Qsat,tauc,R_parameter);
+writetable(R_table,name_of_excel_data_file,'Sheet','R parameter');
 %% delete all the function files
 delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
 %% show Q&tau for different measurements
