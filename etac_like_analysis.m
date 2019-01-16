@@ -319,6 +319,7 @@ if exist(idf_filename)~=0
         local_max_ind(end+1)=local_max_ind(end)+cycle_time/dt;
         local_max_tt(end+1)=tt(local_max_ind(1));
     end
+    number_of_peaks=size(local_max_ind,2)-1;
     open_cell_time=open_cell_time(1);
 else
         %% setting parameters and getting the graphical input
@@ -1096,7 +1097,7 @@ end
 %% saving the data in organized way
 Q_excel=array2table(Q_new);
 R_parameter=Q_sat/tauc*60; %[C/min]
-R_table=table(Qsat,tauc,R_parameter);
+R_table=table(Qsat,tauc,R_parameter)
 writetable(R_table,name_of_excel_data_file,'Sheet','R parameter');
 if exist('RemoveSheet123')~=0
     RemoveSheet123(name_of_excel_data_file);
