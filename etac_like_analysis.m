@@ -279,7 +279,6 @@ if is_etac_checkbox.Value==1
         final_data.Q_stdev(main_i)=std(Q(end-q_terms_to_avg:end));
         final_data.h2_kg_day=final_data.Q_charge_avg.*C_to_kg.*(60*60*24./(final_data.charge_time+final_data.discharge_time+10+10));
         final_data.filename(main_i)=data.filename(main_i);
-else
 end
     demixing_time=0;
     for main_i=1:file_number
@@ -296,7 +295,8 @@ if exist(idf_filename)~=0
     FID=fopen(idf_filename);
     idf_file=fscanf(FID,'%c');
     fclose(FID);
-    for i=1:5
+    number_of_stages=str2num(idf_file(strfind(idf_file,'Stages=')+size('Stages=',2)));
+    for i=1:number_of_stages
     txtind=strfind(idf_file,['Stages.Properties[' num2str(i) '].Duration='])+size(['Stages.Properties[' num2str(i) '].Duration='],2);
     txtind_end=txtind+1;    
         while str2num(idf_file(txtind:txtind_end))>0
@@ -319,7 +319,7 @@ if exist(idf_filename)~=0
         local_max_ind(end+1)=local_max_ind(end)+cycle_time/dt;
         local_max_tt(end+1)=tt(local_max_ind(1));
     end
-    number_of_peaks=size(local_max_ind,2)-1;
+    number_of_peaks=size(local_max_ind,2)-2;
     open_cell_time=open_cell_time(1);
 else
         %% setting parameters and getting the graphical input
@@ -397,7 +397,7 @@ end
     %% finding Q charge
     clear t_to_int
     for i=1:number_of_peaks
-        t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-1; %the last term gives the index
+        t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-2; %the last term gives the index
         t_to_int(i,:)=uint64(t_to_int(i,:));
         % just ot check the indices [num2str(i) ' ' num2str(t_to_int(i,1)) ' ' num2str(t_to_int(i,end)) ' ' num2str(t_to_int(i,end)-t_to_int(i,1))]
         Q(i)=trapz(tt(t_to_int(i,:)),II(t_to_int(i,:)));
@@ -405,7 +405,7 @@ end
     %% findind Q discharge - the logic - the time to integrate is the indices of time to integrate of charging + 1, this is open 
 	clear t_to_int_dis
     for i=1:number_of_peaks
-        t_to_int_dis(i,:)=local_max_ind(i)+(charge_time+open_cell_time)/dt-2:local_max_ind(i)+(charge_time+open_cell_time+discharge_time)/dt-1;
+        t_to_int_dis(i,:)=local_max_ind(i)+(charge_time+open_cell_time)/dt-2:local_max_ind(i)+(charge_time+open_cell_time+discharge_time)/dt-2;
         % just ot check the indices [num2str(i) ' ' num2str(t_to_int_dis(i,1)) ' ' num2str(t_to_int_dis(i,end)) ' ' num2str(t_to_int_dis(i,end)-t_to_int_dis(i,1))]
         t_to_int_dis(i,:)=uint64(t_to_int_dis(i,:));
         Q_dis(i)=trapz(tt(t_to_int_dis(i,:)),II(t_to_int_dis(i,:)));
