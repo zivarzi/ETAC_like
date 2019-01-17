@@ -111,7 +111,7 @@ fclose(FID);
 
 C_to_kg=0.00398;%*Q %0.0813 density[kg/m^3]*2Q*R*298K/1 atm    RT! m^3/mol
 %% GUI
-ziv_version=1.051;
+ziv_version=1.06;
 if exist('logo.png')==0
     emd_logo(1:68,1:443,1:3)=255;
 else
@@ -319,7 +319,7 @@ if exist(idf_filename)~=0
         local_max_ind(end+1)=local_max_ind(end)+cycle_time/dt;
         local_max_tt(end+1)=tt(local_max_ind(1));
     end
-    number_of_peaks=size(local_max_ind,2)-2;
+    number_of_peaks=size(local_max_ind,2)-1;
     open_cell_time=open_cell_time(1);
 else
         %% setting parameters and getting the graphical input
@@ -397,7 +397,7 @@ end
     %% finding Q charge
     clear t_to_int
     for i=1:number_of_peaks
-        t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-2; %the last term gives the index
+        t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-1; %the last term gives the index
         t_to_int(i,:)=uint64(t_to_int(i,:));
         % just ot check the indices [num2str(i) ' ' num2str(t_to_int(i,1)) ' ' num2str(t_to_int(i,end)) ' ' num2str(t_to_int(i,end)-t_to_int(i,1))]
         Q(i)=trapz(tt(t_to_int(i,:)),II(t_to_int(i,:)));
@@ -405,7 +405,7 @@ end
     %% findind Q discharge - the logic - the time to integrate is the indices of time to integrate of charging + 1, this is open 
 	clear t_to_int_dis
     for i=1:number_of_peaks
-        t_to_int_dis(i,:)=local_max_ind(i)+(charge_time+open_cell_time)/dt-2:local_max_ind(i)+(charge_time+open_cell_time+discharge_time)/dt-2;
+        t_to_int_dis(i,:)=local_max_ind(i)+(charge_time+open_cell_time)/dt-2:local_max_ind(i)+(charge_time+open_cell_time+discharge_time)/dt-1;
         % just ot check the indices [num2str(i) ' ' num2str(t_to_int_dis(i,1)) ' ' num2str(t_to_int_dis(i,end)) ' ' num2str(t_to_int_dis(i,end)-t_to_int_dis(i,1))]
         t_to_int_dis(i,:)=uint64(t_to_int_dis(i,:));
         Q_dis(i)=trapz(tt(t_to_int_dis(i,:)),II(t_to_int_dis(i,:)));
