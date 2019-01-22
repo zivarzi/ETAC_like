@@ -283,11 +283,20 @@ if is_etac_checkbox.Value==1
 end
     demixing_time=0;
     for main_i=1:file_number
-    temp=cell2mat(data.data(main_i));
+    temp=data.data{main_i};
     clear tt vv II
     tt=temp(:,1); II=temp(:,2); vv=temp(:,3);
-    clear temp    
+    clear temp
     dt=tt(2)-tt(1);
+    % this weird loop is fixing bug in matlab import of hand made CSV from
+    % ivium
+    for i=1:numel(tt)
+        temp_tt=0:dt:(numel(II)-1)*dt;
+        if tt(i)~=temp_tt(i)
+           tt=temp_tt; clear temp_tt
+           break
+        end
+    end
     clear local_max_ind local_max_tt 
 %% checking for idf files
 idf_filename=char(data.filepath{main_i,1});
