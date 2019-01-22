@@ -288,8 +288,7 @@ end
     tt=temp(:,1); II=temp(:,2); vv=temp(:,3);
     clear temp
     dt=tt(2)-tt(1);
-    % this weird loop is fixing bug in matlab import of hand made CSV from
-    % ivium
+    % this weird loop is fixing bug in matlab import of hand made CSV from ivium
     for i=1:numel(tt)
         temp_tt=0:dt:(numel(II)-1)*dt;
         if tt(i)~=temp_tt(i)
