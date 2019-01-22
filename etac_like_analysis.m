@@ -1,3 +1,4 @@
+
 %% clearing the workspace
 close_all=string(questdlg('Do you want to close all the open figures?','',"Yes","No","Yes"));
 if close_all=="Yes"
