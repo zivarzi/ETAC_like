@@ -136,10 +136,12 @@ uicontrol(folder_select_panel,'Style','text','String',{['Version ' num2str(ziv_v
 
 
 tab_group=uitabgroup(uif,'Position',[0.01 0.01 0.98 0.86]);
-general_tab=uitab(tab_group,'Title','General');
-advanced_tab=uitab(tab_group,'Title','Advanced options');
+etac_like_general_tab=uitab(tab_group,'Title','ETAC Like');
+etac_like_advanced_tab=uitab(tab_group,'Title','ETAC Like Advanced options');
+etac_tab=uitab(tab_group,'Title','ETAC');
+xrd_tab=uitab(tab_group,'Title','XRD');
 
-uigraphic=uipanel(general_tab,'title','Graphic options'); %creating panel for the input
+uigraphic=uipanel(etac_like_general_tab,'title','Graphic options'); %creating panel for the input
 %Creating the checkboxes 
 panel_name=uigraphic;
 uigraphic.Units='normalized';
@@ -148,9 +150,7 @@ height_lines_checkbox=uicontrol(uigraphic,'Style','checkbox','String','Show elev
 uigraphic_height=1-get_last_ui_position(panel_name);
 uigraphic_ypos=get_last_ui_position(uif,'uitab');
 
-caxis_btn=uicontrol(uigraphic,'String','Open scale unifier','Callback','uif.Visible=''off'';caxis_tool();','Units','normalized','Position',[0.55 0.9 0.3 0.1]);
-
-uifitting=uipanel(general_tab,'title','fitting'); %creating panel for the input
+uifitting=uipanel(etac_like_general_tab,'title','fitting'); %creating panel for the input
 panel_name=uifitting;
 fit_diag_checkbox=uicontrol(uifitting,'Style','checkbox','String','Plot the fit of the diagonal of the Q charged matrix','Units','normalized','Position',[x_pos initial_height text_w text_h],'HorizontalAlignment','left');
 extrapulate_by_rows_checkbox=uicontrol(uifitting,'Style','checkbox','String','extrapulate empty data points using rows [Q_{sat}*(1-exp(1/\tau*t)]','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h],'HorizontalAlignment','left','Value',1);
@@ -169,7 +169,7 @@ uifitting_height=1-get_last_ui_position(panel_name)-uigraphic_height+text_h;
 uifitting.Position=[0 uifitting_height-uigraphic_height 1 1-uifitting_height];
 
 %creating the parameters input fields
-uiparameters=uipanel(general_tab,'title','Measurement paramteres'); %creating panel for the input
+uiparameters=uipanel(etac_like_general_tab,'title','Measurement paramteres'); %creating panel for the input
 panel_name=uiparameters;
 label_h=text_h;
 input_h=text_h;
@@ -196,8 +196,11 @@ uiparameters_height=get_last_ui_position(panel_name);
 uiparameters.Position=[0 uiparameters_height-uifitting_height-uigraphic_height 1 1-uiparameters_height];
 is_etac_checkbox=uicontrol(uiparameters,'Style','checkbox','String','Is this E-TAC measurement?','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-2*height_interval text_w input_h]);
 
-advanced_panel=uipanel(advanced_tab,'title','Advanced options','units','normalized','Position',[0 .1 1 0.9]);
+advanced_panel=uipanel(etac_like_advanced_tab,'title','Advanced options','units','normalized','Position',[0 .1 1 0.9]);
 panel_name=advanced_panel;
+
+caxis_btn=uicontrol(advanced_panel,'String','Open scale unifier','Callback','uif.Visible=''off'';caxis_tool();','Units','normalized','Position',[0.55 0.9 0.3 0.1]);
+
 smooth_data_ui=uicontrol(advanced_panel,'Style','checkbox','String','Smooth noisy data','Value',1,'Units','normalized','Position',[x_pos initial_height text_w text_h]);
 save_fit_figure=uicontrol(advanced_panel,'Style','checkbox','String','Save Q matrix diagonal fitting figure','Value',1,'Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h]);
 save_Q_norm_to_Qmax_figure=uicontrol(advanced_panel,'Style','checkbox','String','Save Q normalized to Q maximum figure','Value',1,'Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w text_h]);
@@ -209,9 +212,19 @@ show_final_data_checkbox=uicontrol(advanced_panel,'Style','checkbox','String','S
 define_treshold_I_for_maximum_text=uicontrol(advanced_panel,'Style','text','String','Define lower I of previous measurment [mA]','Tooltip','if you have problem with finding the right indices','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-2*height_interval text_w/2 label_h],'HorizontalAlignment','left');
 define_treshold_I_for_maximum=uicontrol(advanced_panel,'Style','edit','String','10','Units','normalized','Position',[x_pos+text_w/2 get_last_ui_position(panel_name)+input_h/2 text_w/5 input_h/2],'Value',10);
 
-
 save_preset=uicontrol(advanced_panel,'Style','pushbutton','String','Save preset','Callback','uisave','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-2*height_interval 0.3 0.07]);
 load_preset=uicontrol(advanced_panel,'Style','pushbutton','String','load preset','Callback','close;[file,path]=uigetfile;load([path file])','Units','normalized','Position',[x_pos+.4 get_last_ui_position(panel_name) 0.3 0.07]);
+
+etac_panel=uipanel(etac_tab,'title','ETAC','units','normalized','Position',[0 .1 1 0.9]);
+panel_name=etac_panel;
+etac_text=uicontrol(etac_panel,'Style','text','String','Choose a folder with exported text files from IVIUM ETAC experiment','Units','normalized','Position',[.01 initial_height .9 text_h],'FontSize',16);
+etac_btn=uicontrol(etac_panel,'Style','pushbutton','String','ETAC analysis','Callback','integrate_etac','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-2*height_interval text_w text_h]);
+
+xrd_panel=uipanel(xrd_tab,'title','XRD','units','normalized','Position',[0 .1 1 0.9]);
+panel_name=xrd_panel;
+etac_text=uicontrol(xrd_panel,'Style','text','String','Choose a XRD RAS file you want to plot with phases','Units','normalized','Position',[.01 initial_height .9 text_h],'FontSize',16);
+etac_btn=uicontrol(xrd_panel,'Style','pushbutton','String','plot XRD spectrum','Callback','xrd','Units','normalized','Position',[x_pos get_last_ui_position(xrd_panel)-2*height_interval text_w text_h]);
+
 
 start_btn=uicontrol('String','Start analysis','Callback',...
                                         'if or(isempty(sample_name_ui.String),isempty(time_of_deposition_ui.String));msgbox(''Punk, Enter all the fields!'');else;save(''vars''); close(uif);end'...
@@ -761,7 +774,7 @@ opts_Qc_3D.Exclude=excludedata(charge_times_fit, charge_times_fit,'indices',find
 if fit_3D_checkbox.Value==1
 fit_3d_figure=figure;
 fit_surf_plot=plot(fitresult_Qc_3D,[x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D,'Exclude',opts_Qc_3D.Exclude);
-annotation('textbox','BackgroundColor','w','Position',[.8 .8 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qc_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qc_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qc_3D.taud) ' [s]']},'FitBoxToText','on')
+annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qc_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qc_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qc_3D.taud) ' [s]']},'FitBoxToText','on')
 xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
 savefig(fit_3d_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
 saveas(fit_3d_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
