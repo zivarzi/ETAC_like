@@ -112,7 +112,7 @@ fclose(FID);
 
 C_to_kg=0.00398;%*Q %0.0813 density[kg/m^3]*2Q*R*298K/1 atm    RT! m^3/mol
 %% GUI
-ziv_version=1.06;
+ziv_version=1.07;
 if exist('logo.png')==0
     emd_logo(1:68,1:443,1:3)=255;
 else
