@@ -69,16 +69,16 @@ end
 comap=lines(5);
 phase_panel=uipanel(fig,'units','normalized','Position',[0.8 0.2 0.18 0.6]);
 %a_check_cb=["acv=a_check.Value; disappear('\alpha phase Ni{(OH)}_2',acv)"];
-a_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.9 0.9 0.1],'Style','checkbox','String','\a phase','Value',1);
+a_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.9 0.9 0.1],'Style','checkbox','String','alpha OH2 phase','Value',1);
 a_check.Callback="acv=a_check.Value; disappear('\alpha phase Ni{(OH)}_2',acv);";
-boh2_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.7 0.9 0.1],'Style','checkbox','String','\b phase','Value',1);
+boh2_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.7 0.9 0.1],'Style','checkbox','String','b OH2 phase','Value',1);
 boh2_check.Callback="boh2v=boh2_check.Value; disappear('\beta phase Ni{(OH)}_2',boh2v);";
-booh_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.5 0.9 0.1],'Style','checkbox','String','\b phase','Value',1);
+booh_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.5 0.9 0.1],'Style','checkbox','String','b OOH phase','Value',1);
 booh_check.Callback="boohv=booh_check.Value; disappear('\beta phase NiOOH',boohv);";
-gooh_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.3 0.9 0.1],'Style','checkbox','String','\g phase','Value',1);
+gooh_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.3 0.9 0.1],'Style','checkbox','String','g OOH phase','Value',1);
 gooh_check.Callback="goohv=gooh_check.Value; disappear('\gamma phase NiOOH',goohv);";
 ni_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.1 0.9 0.1],'Style','checkbox','String','Ni phase','Value',1);
-ni_check.Callback="niv=ni_check.Value; disappear('\alpha phase Ni{(OH)}_2',niv);";
+ni_check.Callback="niv=ni_check.Value; disappear('Ni',niv);";
 end
 
 
