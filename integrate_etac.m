@@ -17,6 +17,8 @@ while std(Q(i:end))>convergence_parameter*mean(Q(i:end))
     i=i+1;
 end
 i=6;
-disp(['Q average: Q' num2str(i) ' to Q' num2str(numel(Q)) ' : ' num2str(mean(Q(i:end))) ' [C]'])
-disp(['Q stdev: Q' num2str(i) ' to Q' num2str(numel(Q)) ' : ' num2str(std(Q(i:end))) ' [C]'])
+txt=['Q average: Q' num2str(i) ' to Q' num2str(numel(Q)) ' : ' num2str(mean(Q(i:end))) ' [C]',newline,'Q stdev: Q' num2str(i) ' to Q' num2str(numel(Q)) ' : ' num2str(std(Q(i:end))) ' [C]']
+disp(txt)
 title(inputdlg('Title'))
+% FID=fopen('Q.txt','w');
+% fwrite(FID,
