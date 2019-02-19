@@ -1,3 +1,7 @@
+if exist('disappear')==0
+    msgbox('Make sure disappear.m file is in your folder')
+end
+clear
 [file_name file_path]=uigetfile('*.ras','MultiSelect','on');
 if iscell(file_name)==0
     number_of_files=1;
@@ -5,7 +9,8 @@ else
    number_of_files=size(file_name,2); 
 end
 for i=1:number_of_files
-FID=fopen([file_path file_name{i}]);
+
+    FID=fopen([file_path file_name{i}]);
 xrd_raw_data=fscanf(FID,'%c');
 fclose(FID);
 txtind=strfind(xrd_raw_data,'*RAS_INT_START')+size('*RAS_INT_START',2);
@@ -18,15 +23,26 @@ end
 %%
 offset=max(1.5*max(xrd_data(:,2,:)));
 offset=500;
-[allpl alpha_slid y_slider ax]=plot_offset(offset,xrd_data,number_of_files,file_name);
-
+[allpl alpha_slid y_slider ax pl a_check boh2_check booh_check gooh_check ni_check]=plot_offset(offset,xrd_data,number_of_files,file_name);
+function names=disappear(names,vis);
+names=findobj('DisplayName',names);
+    for i=1:size(names,1)
+        if vis==1
+            names(i).Visible='on';
+        else
+            names(i).Visible='off';
+    end
+    end
+end
 %% functions
-function [allpl alpha_slid y_slider ax]=plot_offset(offset,xrd_data,number_of_files,file_name)
+
+function [allpl alpha_slid y_slider ax pl a_check boh2_check booh_check gooh_check ni_check]=plot_offset(offset,xrd_data,number_of_files,file_name)
 fig=figure;
-ax=axes(fig,'Units','normalized','Position',[.07 .07 0.9 0.82],'Title','axes');
+ax=axes(fig,'Units','normalized','Position',[.07 .07 0.7 0.82],'Title','axes');
 hold on
 for i=1:number_of_files
-pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
+    pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
+    xrd_names(i)={pl(i).DisplayName};
 end
 set(gca,'YTickLabel',{})
 xlabel('\theta')
@@ -44,8 +60,27 @@ alpha_callback=['alph=alpha_slid.Value;'...
                 'allpl.Children(i).Color(4)=alph;end'];
 alpha_slid=uicontrol(fig,'Style','slider','Min',0,'Max',1,'Value',0.5,'units','normalized','Position',[0.55 0.94 0.4 0.05],'Callback',alpha_callback);
 allpl=plot_jcpds(alph,max(xrd_data(:,2)));
-legends=[ax.Legend 
+hold on
+autummn=autumn(number_of_files);
+for i=1:number_of_files
+    pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4),'Color',autummn(i,:));
+    xrd_names(i)={pl(i).DisplayName};
 end
+comap=lines(5);
+phase_panel=uipanel(fig,'units','normalized','Position',[0.8 0.2 0.18 0.6]);
+%a_check_cb=["acv=a_check.Value; disappear('\alpha phase Ni{(OH)}_2',acv)"];
+a_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.9 0.9 0.1],'Style','checkbox','String','\a phase','Value',1);
+a_check.Callback="acv=a_check.Value; disappear('\alpha phase Ni{(OH)}_2',acv);";
+boh2_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.7 0.9 0.1],'Style','checkbox','String','\b phase','Value',1);
+boh2_check.Callback="boh2v=boh2_check.Value; disappear('\beta phase Ni{(OH)}_2',boh2v);";
+booh_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.5 0.9 0.1],'Style','checkbox','String','\b phase','Value',1);
+booh_check.Callback="boohv=booh_check.Value; disappear('\beta phase NiOOH',boohv);";
+gooh_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.3 0.9 0.1],'Style','checkbox','String','\g phase','Value',1);
+gooh_check.Callback="goohv=gooh_check.Value; disappear('\gamma phase NiOOH',goohv);";
+ni_check=uicontrol(phase_panel,'Units','normalized','Position',[0.05 0.1 0.9 0.1],'Style','checkbox','String','Ni phase','Value',1);
+ni_check.Callback="niv=ni_check.Value; disappear('\alpha phase Ni{(OH)}_2',niv);";
+end
+
 
 % function refresh_alpha(alph)
 %     pl_a_oh2.Color(4)=alph;
@@ -100,7 +135,7 @@ if nargin==1
     pl_ni=plot([jcpds.ni.twotheta(i) jcpds.ni.twotheta(i)],[0 max_I],ni_line,'Color',cmap(5,:),'DisplayName','Ni');
     end
     pl_ni.Color(4)=alpha_val;
-    legend([pl_a_oh2(1) pl_b_oh2(1) pl_b_ooh(1) pl_g_ooh(1) pl_ni],pl_a_oh2(1).DisplayName...
+    leg_jcpds=legendlegend([pl_a_oh2(1) pl_b_oh2(1) pl_b_ooh(1) pl_g_ooh(1) pl_ni],pl_a_oh2(1).DisplayName...
         ,pl_b_oh2(2).DisplayName,pl_b_ooh(3).DisplayName,pl_g_ooh(4).DisplayName,pl_ni.DisplayName);
     
    % plot(plotx,ploty,'DisplayName',nameofcurve)
@@ -142,7 +177,7 @@ elseif nargin==2
     pl_ni=plot([jcpds.ni.twotheta(i) jcpds.ni.twotheta(i)],[0 max_I],ni_line,'Color',cmap(5,:),'DisplayName','Ni');
     pl_ni.Color(4)=alpha_val;
     end
-    legend([pl_a_oh2(1) pl_b_oh2(1) pl_b_ooh(1) pl_g_ooh(1) pl_ni],pl_a_oh2(1).DisplayName...
+    leg_jcpds=legend([pl_a_oh2(1) pl_b_oh2(1) pl_b_ooh(1) pl_g_ooh(1) pl_ni],pl_a_oh2(1).DisplayName...
         ,pl_b_oh2(2).DisplayName,pl_b_ooh(3).DisplayName,pl_g_ooh(4).DisplayName,pl_ni.DisplayName);
 
    % plot(plotx,ploty,'DisplayName',nameofcurve)
@@ -181,7 +216,7 @@ elseif nargin==3
     pl_ni=plot([jcpds.ni.twotheta(i) jcpds.ni.twotheta(i)],[0 max_I],ni_line,'Color',cmap(5,:),'DisplayName','Ni');
     pl_ni.Color(4)=alpha_val;
     end
-    legend([pl_a_oh2(1) pl_b_oh2(1) pl_b_ooh(1) pl_g_oog(1) pl_ni],pl_a_oh2(1).DisplayName...
+    leg_jcpds=legend([pl_a_oh2(1) pl_b_oh2(1) pl_b_ooh(1) pl_g_oog(1) pl_ni],pl_a_oh2(1).DisplayName...
         ,pl_b_oh2(2).DisplayName,pl_b_ooh(3).DisplayName,pl_g_oog(4).DisplayName,pl_ni.DisplayName);
     %plot(plotx,ploty,"--",'DisplayName',nameofcurve)
     hold off
