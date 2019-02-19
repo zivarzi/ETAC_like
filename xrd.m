@@ -18,15 +18,15 @@ end
 %%
 offset=max(1.5*max(xrd_data(:,2,:)));
 offset=500;
-[allpl alpha_slid y_slider]=plot_offset(offset,xrd_data,number_of_files);
+[allpl alpha_slid y_slider ax]=plot_offset(offset,xrd_data,number_of_files,file_name);
 
 %% functions
-function [allpl alpha_slid y_slider]=plot_offset(offset,xrd_data,number_of_files)
+function [allpl alpha_slid y_slider ax]=plot_offset(offset,xrd_data,number_of_files,file_name)
 fig=figure;
 ax=axes(fig,'Units','normalized','Position',[.07 .07 0.9 0.82],'Title','axes');
 hold on
 for i=1:number_of_files
-plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset)
+pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
 end
 set(gca,'YTickLabel',{})
 xlabel('\theta')
@@ -44,6 +44,7 @@ alpha_callback=['alph=alpha_slid.Value;'...
                 'allpl.Children(i).Color(4)=alph;end'];
 alpha_slid=uicontrol(fig,'Style','slider','Min',0,'Max',1,'Value',0.5,'units','normalized','Position',[0.55 0.94 0.4 0.05],'Callback',alpha_callback);
 allpl=plot_jcpds(alph,max(xrd_data(:,2)));
+legends=[ax.Legend 
 end
 
 % function refresh_alpha(alph)
