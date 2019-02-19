@@ -52,13 +52,14 @@ y_callback=['yval=y_slider.Value;' newline...
             'for i=1:n' newline...
             'allpl.Children(i).YData(2)=yval;end;' newline...
             ''];
-y_slider=uicontrol(fig,'Style','slider','Min',0,'Max',max(max(xrd_data(:,2,:)))*1.5,'Value',max(max(xrd_data(:,2,:))),'units','normalized','Position',[0.05 0.94 0.4 0.05],'Callback',y_callback);
+y_slider=uicontrol(fig,'Style','slider','Min',0,'Max',max(max(xrd_data(:,2,:)))*1.5,'Value',max(max(xrd_data(:,2,:))),'units','normalized','Position',[0.05 0.9 0.43 0.05],'Callback',y_callback);
+
 alph=0.5;
 alpha_callback=['alph=alpha_slid.Value;'...
                 'n=size(allpl.Children,1)-number_of_files;' newline...
                 'for i=1:n' newline...
                 'allpl.Children(i).Color(4)=alph;end'];
-alpha_slid=uicontrol(fig,'Style','slider','Min',0,'Max',1,'Value',0.5,'units','normalized','Position',[0.55 0.94 0.4 0.05],'Callback',alpha_callback);
+alpha_slid=uicontrol(fig,'Style','slider','Min',0,'Max',1,'Value',0.5,'units','normalized','Position',[0.55 0.9 0.43 0.05],'Callback',alpha_callback);
 allpl=plot_jcpds(alph,max(xrd_data(:,2)));
 hold on
 autummn=autumn(number_of_files);
@@ -66,6 +67,8 @@ for i=1:number_of_files
     pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4),'Color',autummn(i,:));
     xrd_names(i)={pl(i).DisplayName};
 end
+y_text=uicontrol(fig,'Units','normalized','Position',[0.05 0.95 0.4 0.05],'Style','text','String','phases lines height');
+opacity_text=uicontrol(fig,'Units','normalized','Position',[0.55 0.95 0.4 0.05],'Style','text','String','phases lines opacity');
 comap=lines(5);
 phase_panel=uipanel(fig,'units','normalized','Position',[0.8 0.2 0.18 0.6]);
 %a_check_cb=["acv=a_check.Value; disappear('\alpha phase Ni{(OH)}_2',acv)"];
