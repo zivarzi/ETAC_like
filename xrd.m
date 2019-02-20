@@ -1,3 +1,19 @@
+clear xrd_data xrd_data_raw
+
+FID = fopen('disappear.m','w');
+fprintf(FID,'%s\n',...
+['function names=disappear(names,vis);' ...
+"names=findobj('DisplayName',names);"  ...
+"    for i=1:size(names,1)"  ...
+"        if vis==1"  ...
+"            names(i).Visible='on';"  ...
+"        else"  ...
+"            names(i).Visible='off';"  ...
+"        end"  ...
+"    end"  ...
+"    end"]);
+fclose(FID);
+
 if exist('disappear')==0
     msgbox('Make sure disappear.m file is in your folder')
 end
@@ -9,66 +25,76 @@ else
    number_of_files=size(file_name,2); 
 end
 for i=1:number_of_files
-
     FID=fopen([file_path file_name{i}]);
-xrd_raw_data=fscanf(FID,'%c');
-fclose(FID);
-txtind=strfind(xrd_raw_data,'*RAS_INT_START')+size('*RAS_INT_START',2);
-while isempty(str2num(xrd_raw_data(txtind)))
-    txtind=txtind+1;
+    xrd_raw_data=fscanf(FID,'%c');
+    fclose(FID);
+    txtind=strfind(xrd_raw_data,'*RAS_INT_START')+size('*RAS_INT_START',2);
+        while isempty(str2num(xrd_raw_data(txtind)))
+            txtind=txtind+1;
+        end
+	txtind_end=strfind(xrd_raw_data,'*RAS_INT_END')-1;
+	xrd_temp=str2num(xrd_raw_data(txtind:txtind_end));
+    xrd_data(i).file_number=i;
+    xrd_data(i).theta=xrd_temp(2:end,1);
+    xrd_data(i).intensity=xrd_temp(2:end,2);
+    clear xrd_temp
 end
-txtind_end=strfind(xrd_raw_data,'*RAS_INT_END')-1;
-xrd_data(:,:,i)=str2num(xrd_raw_data(txtind:txtind_end));
-end
-%%
-offset=max(1.5*max(xrd_data(:,2,:)));
 offset=500;
-[allpl alpha_slid y_slider ax pl a_check boh2_check booh_check gooh_check ni_check]=plot_offset(offset,xrd_data,number_of_files,file_name);
-function names=disappear(names,vis);
-names=findobj('DisplayName',names);
-    for i=1:size(names,1)
-        if vis==1
-            names(i).Visible='on';
-        else
-            names(i).Visible='off';
-    end
-    end
-end
+%% k
+[allpl alpha_slid y_slider ax pl a_check boh2_check booh_check gooh_check ni_check offset_slider]=plot_offset(offset,xrd_data,number_of_files,file_name);
+
 %% functions
 
-function [allpl alpha_slid y_slider ax pl a_check boh2_check booh_check gooh_check ni_check]=plot_offset(offset,xrd_data,number_of_files,file_name)
-fig=figure;
+function [allpl alpha_slid y_slider ax pl a_check boh2_check booh_check gooh_check ni_check offset_slider]=plot_offset(offset,xrd_data,number_of_files,file_name)
+fig=figure;%('CloseRequestFcn',"delete 'disappear.m'");
 ax=axes(fig,'Units','normalized','Position',[.07 .07 0.7 0.82],'Title','axes');
 hold on
 for i=1:number_of_files
-    pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
+    pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
     xrd_names(i)={pl(i).DisplayName};
+    max_intensity(i)=max(xrd_data(i).intensity);
+    pl(i).Visible='off';
 end
+max_intensity=max(max_intensity);
 set(gca,'YTickLabel',{})
 xlabel('\theta')
 ylabel('intensity [A.U.]')
+
+offset_callback=['  n=size(allpl.Children,1)-number_of_files;' newline...
+            '  for i=n+2:size(allpl.Children,1)' newline...
+            '    allpl.Children(i).YData=allpl.Children(i).YData-(i-n-1)*offset;' newline...
+            '  end' newline...
+            'offset=offset_slider.Value;' newline...
+            '  for i=n+2:size(allpl.Children,1)' newline...
+            '    allpl.Children(i).YData=allpl.Children(i).YData+(i-n-1)*offset;' newline...
+            '  end' newline...
+            ''];
+offset_slider=uicontrol(fig,'Style','slider','Min',0,'Max',max_intensity*1.5,'Value',500,'units','normalized','Position',[0.05 0.9 0.3 0.05],'Callback',offset_callback);
+
 y_callback=['yval=y_slider.Value;' newline...
             'n=size(allpl.Children,1)-number_of_files;' newline...
             'for i=1:n' newline...
-            'allpl.Children(i).YData(2)=yval;end;' newline...
+            'allpl.Children(i).YData(2)=yval;end' newline...
             ''];
-y_slider=uicontrol(fig,'Style','slider','Min',0,'Max',max(max(xrd_data(:,2,:)))*1.5,'Value',max(max(xrd_data(:,2,:))),'units','normalized','Position',[0.05 0.9 0.43 0.05],'Callback',y_callback);
+y_slider=uicontrol(fig,'Style','slider','Min',0,'Max',max_intensity*1.5,'Value',max_intensity,'units','normalized','Position',[0.4 0.9 0.3 0.05],'Callback',y_callback);
 
 alph=0.5;
 alpha_callback=['alph=alpha_slid.Value;'...
                 'n=size(allpl.Children,1)-number_of_files;' newline...
-                'for i=1:n' newline...
-                'allpl.Children(i).Color(4)=alph;end'];
-alpha_slid=uicontrol(fig,'Style','slider','Min',0,'Max',1,'Value',0.5,'units','normalized','Position',[0.55 0.9 0.43 0.05],'Callback',alpha_callback);
-allpl=plot_jcpds(alph,max(xrd_data(:,2)));
+                'for i=number_of_files+1:n' newline...
+                'allpl.Children(i).Color(4)=alph;' newline....
+                'end'];
+alpha_slid=uicontrol(fig,'Style','slider','Min',0,'Max',1,'Value',0.5,'units','normalized','Position',[0.7 0.9 0.2 0.05],'Callback',alpha_callback);
+allpl=plot_jcpds(alph,max(xrd_data(i).intensity));
 hold on
 autummn=autumn(number_of_files);
 for i=1:number_of_files
-    pl(i)=plot(xrd_data(:,1,i),smooth(xrd_data(:,2,i))-min(xrd_data(:,2,1))+(i-1)*offset,'DisplayName',file_name{i}(1:end-4),'Color',autummn(i,:));
+    pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name{i}(1:end-4),'Color',autummn(i,:));
     xrd_names(i)={pl(i).DisplayName};
 end
-y_text=uicontrol(fig,'Units','normalized','Position',[0.05 0.95 0.4 0.05],'Style','text','String','phases lines height');
-opacity_text=uicontrol(fig,'Units','normalized','Position',[0.55 0.95 0.4 0.05],'Style','text','String','phases lines opacity');
+offset_text=uicontrol(fig,'Units','normalized','Position',[0 0.95 0.4 0.05],'Style','text','String','XRD patterns offset');
+y_text=uicontrol(fig,'Units','normalized','Position',[0.39 0.95 0.4 0.05],'Style','text','String','phases lines height');
+opacity_text=uicontrol(fig,'Units','normalized','Position',[0.6 0.95 0.4 0.05],'Style','text','String','phases lines opacity');
 comap=lines(5);
 phase_panel=uipanel(fig,'units','normalized','Position',[0.8 0.2 0.18 0.6]);
 %a_check_cb=["acv=a_check.Value; disappear('\alpha phase Ni{(OH)}_2',acv)"];

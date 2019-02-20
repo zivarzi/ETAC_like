@@ -5,6 +5,6 @@ names=findobj('DisplayName',names);
             names(i).Visible='on';
         else
             names(i).Visible='off';
+        end
     end
     end
-end
