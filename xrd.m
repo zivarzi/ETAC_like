@@ -84,7 +84,7 @@ maxi=maxtheta;mini=mintheta;
 
 max_text=uicontrol(fig,'Style','text','String',num2str(maxtheta),'units','normalized','Position',[0.8 0.2 0.19 0.05]);
 max_slider=uicontrol(fig,'Style','slider','Min',mini,'Max',maxtheta,'Value',maxtheta,'units','normalized','Position',[0.8 0.15 0.19 0.05],'Callback','maxi=max_slider.Value; this.XLim(2)=maxi;max_text.String=num2str(maxi);');%min_slider.Max=maxi;');
-min_text=uicontrol(fig,'Style','text','String',num2str(mintheta),'units','normalized','Position',[0.8 0.1 0.19 0.05]);
+min_text=uicontrol(fig,'Style','text','String',num2str(mintheta),'units','normalized','Position',[0.8 0.1 0.19 0.05],'Callback','min_slider.Value=str2num(inputdlg)');
 min_slider=uicontrol(fig,'Style','slider','Min',mintheta,'Max',maxi,'Value',mintheta,'units','normalized','Position',[0.8 0.05 0.19 0.05],'Callback','mini=min_slider.Value; this.XLim(1)=mini;min_text.String=num2str(mini);');%max_slider.Min=mini');
 
 offset_callback=['  n=size(allpl.Children,1)-number_of_files;' newline...
