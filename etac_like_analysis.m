@@ -1,4 +1,3 @@
-
 %% clearing the workspace
 close_all=string(questdlg('Do you want to close all the open figures?','',"Yes","No","Yes"));
 if close_all=="Yes"
@@ -177,7 +176,7 @@ sample_name_text=uicontrol(uiparameters,'Style','text','String','What is the sam
 sample_name_ui=uicontrol(uiparameters,'Style','edit','String','','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-height_interval text_w/5 input_h]);
 
 time_of_deposition_text=uicontrol(uiparameters,'Style','text','String','What is the deposition time [hours]?','Units','normalized','Position',[x_pos+0.3 1-label_h text_w label_h],'HorizontalAlignment','left');
-time_of_deposition_ui=uicontrol(uiparameters,'Style','edit','String','','Units','normalized','Position',[x_pos+0.3 get_last_ui_position(panel_name)-height_interval text_w/5 input_h]); 
+time_of_deposition_ui=uicontrol(uiparameters,'Style','edit','String','','Units','normalized','Position',[x_pos+0.3 get_last_ui_position(panel_name)-height_interval text_w/5 input_h],'String',1); 
 
 charge_potential_text=uicontrol(uiparameters,'Style','text','String','What is the charging potential? [V Vs. RHE]','Units','normalized','Position',[x_pos+0.65 1-label_h text_w label_h],'HorizontalAlignment','left');
 charge_potential_ui=uicontrol(uiparameters,'Style','edit','String','','Units','normalized','Position',[x_pos+0.65 get_last_ui_position(panel_name)-height_interval text_w/5 input_h],'String',1.48); 
@@ -195,7 +194,7 @@ uiparameters.Units='normalized';
 uiparameters_height=get_last_ui_position(panel_name);
 uiparameters.Position=[0 uiparameters_height-uifitting_height-uigraphic_height 1 1-uiparameters_height];
 is_etac_checkbox=uicontrol(uiparameters,'Style','checkbox','String','Is this E-TAC measurement?','Units','normalized','Position',[x_pos get_last_ui_position(panel_name)-2*height_interval text_w input_h]);
-
+OP_ui=uicontrol(uiparameters,'Style','checkbox','String','Is this OP measurement?','Units','normalized','Position',[x_pos+0.3 is_etac_checkbox.Position(2) text_w input_h]);
 advanced_panel=uipanel(etac_like_advanced_tab,'title','Advanced options','units','normalized','Position',[0 .1 1 0.9]);
 panel_name=advanced_panel;
 
@@ -318,20 +317,30 @@ if exist(idf_filename)~=0
     idf_file=fscanf(FID,'%c');
     fclose(FID);
     number_of_stages=str2num(idf_file(strfind(idf_file,'Stages=')+size('Stages=',2)));
+    charge_time=0; discharge_time=0;
     for i=1:number_of_stages
     txtind=strfind(idf_file,['Stages.Properties[' num2str(i) '].Duration='])+size(['Stages.Properties[' num2str(i) '].Duration='],2);
     txtind_end=txtind+1;    
         while str2num(idf_file(txtind:txtind_end))>0
             txtind_end=txtind_end+1;
         end
-        if i==2
-            charge_time=str2num(idf_file(txtind:txtind_end-1));
-        elseif i==4
-            discharge_time=str2num(idf_file(txtind:txtind_end-1));
-        else
-            open_cell_time(i)=str2num(idf_file(txtind:txtind_end-1));
-        end
-        
+        if OP_ui.Value==1 %OP measurement dis/charge times
+            if and(i<number_of_stages-1,i>1) %assuming 1&end stage are Open cell and there is 1 discharge stage
+                charge_time=charge_time+str2num(idf_file(txtind:txtind_end-1));
+            elseif i==number_of_stages-1
+                discharge_time=str2num(idf_file(txtind:txtind_end-1));
+            end
+            save('for_OP.mat')
+            analyze_OP()
+        else %ETAC measurement dis/charge times
+            if i==2
+                charge_time=str2num(idf_file(txtind:txtind_end-1));
+            elseif i==4
+                discharge_time=str2num(idf_file(txtind:txtind_end-1));
+            else
+                open_cell_time(i)=str2num(idf_file(txtind:txtind_end-1));
+            end
+        end        
     end
     %starting maximum & minimum
 	local_max_ind(1)=open_cell_time(1)/dt;
@@ -1126,6 +1135,27 @@ if exist('RemoveSheet123')~=0
 end
 %% delete all the function files
 delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
+
+function a=analyze_OP()
+    load('for_OP.mat')
+    a=dir(uigetdir);
+        for i1=1:size(a,1)
+            if size(a(i1).name,2)>4
+                if strfind(a(i1).name(end-4:end),'.ids')
+                    FID_read=fopen(a(i1).name,'r','n','windows-1252')
+                    data=fscanf(FID_read,'%c');
+                    indice_of_data=strfind(data,'primary_data')
+                    fgets
+                    for i=2:size(index_of_measurements,2)
+                        FID=fopen([a(i1).name(1:end-4) '_scan' num2str(i-1) '.idf'],'w');
+                        fwrite(FID,[header newline data(index_of_measurements(i-1):index_of_measurements(i)) footer],'char');
+                    end
+                    fclose('all');
+                end 
+            end
+        end
+    delete('for_OP.mat')
+end
 %% show Q&tau for different measurements
 
 % qtau_opts=fitoptions( 'Method', 'NonlinearLeastSquares' );
