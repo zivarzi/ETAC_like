@@ -25,7 +25,11 @@ else
    number_of_files=size(file_name,2); 
 end
 for i=1:number_of_files
+    if number_of_files>1
     FID=fopen([file_path file_name{i}]);
+    else
+    FID=fopen([file_path file_name]);
+    end
     xrd_raw_data=fscanf(FID,'%c');
     fclose(FID);
     txtind=strfind(xrd_raw_data,'*RAS_INT_START')+size('*RAS_INT_START',2);
@@ -51,7 +55,11 @@ fig=figure;%('CloseRequestFcn',"delete 'disappear.m'");
 ax=axes(fig,'Units','normalized','Position',[.07 .07 0.7 0.82],'Title','axes');
 hold on
 for i=1:number_of_files
+    if number_of_files>1
     pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
+    else
+    pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name(1:end-4));
+    end
     xrd_names(i)={pl(i).DisplayName};
     max_intensity(i)=max(xrd_data(i).intensity);
     pl(i).Visible='off';
@@ -119,7 +127,11 @@ allpl=plot_jcpds(alph,max(xrd_data(i).intensity));
 hold on
 autummn=autumn(number_of_files);
 for i=1:number_of_files
-    pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name{i}(1:end-4),'Color',autummn(i,:));
+    if number_of_files>1
+    pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name{i}(1:end-4));
+    else
+    pl(i)=plot(xrd_data(i).theta,smooth(xrd_data(i).intensity)-min(xrd_data(i).intensity)+(i-1)*offset,'DisplayName',file_name(1:end-4));
+    end
     xrd_names(i)={pl(i).DisplayName};
 end
 

@@ -46,6 +46,7 @@ fprintf(FID,'%s\n',...
         "    ca=last_gcf(i).CurrentAxes.Children(2);",...    
         "    caxis(last_gcf(i).CurrentAxes,[0 local_max])",...
         "    ca.LevelStep=round(local_max*0.1);",...
+        "    title('names(i)');",...
         "    saveas(last_gcf(i),[last_gcf(i).Name ' unified'],'png');",...
         "end",...
         "end");
@@ -297,7 +298,7 @@ end
     for main_i=1:file_number
     temp=data.data{main_i};
     clear tt vv II
-    tt=temp(:,1); II=temp(:,2); vv=temp(:,3);
+    tt=temp(:,1); II=smooth(temp(:,2)); vv=temp(:,3);
     clear temp
     dt=tt(2)-tt(1);
     % this weird loop is fixing bug in matlab import of hand made CSV from ivium
@@ -307,7 +308,7 @@ end
            tt=temp_tt; clear temp_tt
            break
         end
-    end
+   end
     clear local_max_ind local_max_tt 
 %% checking for idf files
 idf_filename=char(data.filepath{main_i,1});
@@ -357,7 +358,11 @@ else
     dist=tt(end)/number_of_peaks; %distance from each point
     pts=linspace(open_cell_time/dt,tt(end)*(0.7+.1*number_of_peaks/5),number_of_peaks); %50 is 10 seconds of open cell * interval between 
     x_pts=sort(pts); %get only the x values add (:,1) for ginput
-    x_pts_ind=knnsearch(tt,x_pts');    
+    try
+        x_pts_ind=knnsearch(tt,x_pts');    
+    catch 
+        x_pts_ind=knnsearch(tt,x_pts);    
+    end
     %% findind the local maximum points
     threshold_for_first_max=1E-2; %mA
     threshold_for_first_max=define_treshold_I_for_maximum_num;
@@ -459,6 +464,8 @@ end
         final_data(main_i,end+1)=array2table(discharge_time,'VariableNames',{'discharge_time'});
         final_data(main_i,end+1)=array2table(mean(Q(end-q_terms_to_avg:end)),'VariableNames',{'Q_charge_avg'});
         final_data(main_i,end+1)=array2table(std(Q(end-q_terms_to_avg:end)),'VariableNames',{'Q_stdev'});
+        R_param=mean(Q(end-q_terms_to_avg:end))/(charge_time+discharge_time)*60;
+        final_data(main_i,end+1)=array2table(R_param,'VariableNames',{'R_par'});
         final_data(main_i,end+1)=array2table(mean(Q_dis(end-q_terms_to_avg:end)),'VariableNames',{'Q_dis_avg'});
         final_data(main_i,end+1)=array2table(std(Q_dis(end-q_terms_to_avg:end)),'VariableNames',{'Q_dis_stdev'});
         Q1_column=size(final_data,2)+1;
@@ -468,7 +475,7 @@ end
         final_data(main_i,Q1_column:Qlast_column)=array2table(Q,'VariableNames',Q_names);
         final_data(main_i,Q_dis1_column:Q_dislast_column)=array2table(Q_dis,'VariableNames',Q_dis_names);
         final_data(main_i,end+1)=array2table(0,'VariableNames',{'Q_dis_stdev'});
-        final_data.Properties.VariableNames=['filename' 'charge_time' 'discharge_time' 'Q_charge_avg' 'Q_stdev' 'Q_dis_avg' 'Q_dis_stdev' 'h2_kg_day' Q_names Q_dis_names];
+        final_data.Properties.VariableNames=['filename' 'charge_time' 'discharge_time' 'Q_charge_avg' 'Q_stdev' 'Q_dis_avg' 'Q_dis_stdev' 'h2_kg_day' 'R_par' Q_names Q_dis_names];
     end
     final_data.filename(main_i)=data.filename(main_i);
     final_data.charge_time(main_i)=charge_time;
@@ -480,6 +487,8 @@ end
     final_data(main_i,Q1_column+1:Qlast_column+1)=array2table(Q);
     final_data(main_i,Q_dis1_column+1:Q_dislast_column+1)=array2table(Q_dis);
     final_data.h2_kg_day=final_data.Q_charge_avg.*C_to_kg.*(60*60*24./(final_data.charge_time+final_data.discharge_time+10+10));
+                R_param=mean(Q(end-q_terms_to_avg:end))/(charge_time+discharge_time)*60;%R_param=Q_charge_avg(main_i)/(final_data.charge_time(main_i)+final_data.discharge_time(main_i))*60; %(C/min)
+    final_data.R_par(main_i)=R_param;
     %% define path names for saving figures
 if main_i==1
     name_of_folder=find(path_of_folder=='\');
