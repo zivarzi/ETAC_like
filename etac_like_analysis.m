@@ -313,6 +313,7 @@ end
 %% checking for idf files
 idf_filename=char(data.filepath{main_i,1});
 idf_filename=[idf_filename(1:end-4) '.idf'];
+csv_files=csv_list.filename;
 if exist(idf_filename)~=0
     FID=fopen(idf_filename);
     idf_file=fscanf(FID,'%c');
@@ -353,6 +354,54 @@ if exist(idf_filename)~=0
     end
     number_of_peaks=size(local_max_ind,2)-1;
     open_cell_time=open_cell_time(1);
+    
+elseif isnumeric(str2num(csv_list.filename{main_i})) % from biologic
+    cell_of_times=strsplit(csv_list.filename{main_i},{'-','.'});
+    charge_time=str2num(cell_of_times{1});
+    discharge_time=str2num(cell_of_times{2});
+    clear cell_of_times
+        %starting maximum & minimum
+	local_max_ind(1)=open_cell_time(1)/dt;local_max_ind(1)=open_cell_time(1)/dt;
+    local_max_tt(1)=tt(local_max_ind(1));
+    cycle_time=sum(open_cell_time)+charge_time+discharge_time;
+    while local_max_ind(end)<numel(tt);
+        local_max_ind(end+1)=local_max_ind(end)+cycle_time/dt;
+        local_max_tt(end+1)=tt(local_max_ind(1));
+    end
+    number_of_peaks=size(local_max_ind,2)-2;
+    open_cell_time=open_cell_time(1);
+    t_to1=find(II~=0);
+    indices_to1=find(t_to1(2:end)-t_to1(1:end-1)~=1)+1;
+    clear t_int t_int_charge t_int_discharge
+    j=1;
+    row_number=1;
+
+    for i=1:numel(t_to1)-1
+        if t_to1(i+1)-t_to1(i)==1
+            t_int{row_number}(j)=t_to1(i);  
+            j=j+1;
+        else
+            t_int{row_number}(j)=t_to1(i);
+            row_number=row_number+1;
+            j=1;
+        end
+    end
+    for i=1:size(t_int,2)/2
+    t_int_charge{i}=t_int{2*i-1};
+    t_int_discharge{i}=t_int{2*i};
+    end
+    i=numel(t_int_discharge{end});
+    t_int_discharge{end}=t_int_discharge{end}(1:i);
+    % plots
+    figure
+    plot(tt,II)
+    hold on
+    for i=1:size(t_int_charge,2)
+    Q(i)=trapz(t_int_charge{i}*dt,II(t_int_charge{i}));
+    Q_dis(i)=trapz(t_int_discharge{i}*dt,II(t_int_discharge{i}));
+%         area(t_int_charge{i}*dt,II(t_int_charge{i}))
+%         area(t_int_discharge{i}*dt,II(t_int_discharge{i}))
+    end
 else
         %% setting parameters and getting the graphical input
     dist=tt(end)/number_of_peaks; %distance from each point
@@ -432,11 +481,13 @@ end
     end
     %% finding Q charge
     clear t_to_int
+    t_to_int_row=[];
     for i=1:number_of_peaks
         t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-1; %the last term gives the index
         t_to_int(i,:)=uint64(t_to_int(i,:));
         % just ot check the indices [num2str(i) ' ' num2str(t_to_int(i,1)) ' ' num2str(t_to_int(i,end)) ' ' num2str(t_to_int(i,end)-t_to_int(i,1))]
         Q(i)=trapz(tt(t_to_int(i,:)),II(t_to_int(i,:)));
+        t_to_int_row=[t_to_int_row t_to_int(i,:)];
     end
     %% findind Q discharge - the logic - the time to integrate is the indices of time to integrate of charging + 1, this is open 
 	clear t_to_int_dis
@@ -768,6 +819,7 @@ Q_extrapulated_fit(2:end+1,2:end+1)=Q_extrapulated_fit;
 Q_extrapulated_fit(1,:)=0; Q_extrapulated_fit(:,1)=0; 
 
 charge_times_fit=[0;charge_times];
+discharge_times_fit=[0;discharge_times];
 
 [x_Qc_extrapulated_fit_3D, y_Qc_extrapulated_fit_3D,z_Qc_extrapulated_fit_3D] = prepareSurfaceData( charge_times_fit, charge_times_fit, Q_extrapulated_fit );
 fit_Qc_extrapulated_3D = fittype( 'Q_sat*(1-exp(-1/(tauc/(3*tc)+taud/(3*td))))', 'independent', {'tc', 'td'}, 'dependent', 'z' );
@@ -784,18 +836,18 @@ opts_Qc_3D = fitoptions( 'Method', 'NonlinearLeastSquares' );
 opts_Qc_3D.Display = 'Off';
 opts_Qc_3D.Lower = [min(Q_charge_measured) 0 0];
 opts_Qc_3D.StartPoint = [initial_Q_sat  initial_tau_guess initial_tau_guess];
-opts_Qc_3D.Upper = [1000 5000 5000];
+opts_Qc_3D.Upper = [1000 20000 20000];
 opts_Qc_3D.Exclude=excludedata(charge_times_fit, charge_times_fit,'indices',find(Q_charge_measured_fit_exclude));%Prepare excluded point for the format
 [fitresult_Qc_3D, gof_Qc_3D] = fit([x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D, fit_Qc_3D, opts_Qc_3D );
 
 
 if fit_3D_checkbox.Value==1
-fit_3d_figure=figure;
-fit_surf_plot=plot(fitresult_Qc_3D,[x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D,'Exclude',opts_Qc_3D.Exclude);
+fit_3d_Qc_figure=figure('Name','Q charged [C]');
+fit_surf_Qc_plot=plot(fitresult_Qc_3D,[x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D,'Exclude',opts_Qc_3D.Exclude);
 annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qc_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qc_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qc_3D.taud) ' [s]']},'FitBoxToText','on')
 xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
-savefig(fit_3d_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
-saveas(fit_3d_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
+savefig(fit_3d_Qc_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
+saveas(fit_3d_Qc_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
 end
 
 
@@ -803,16 +855,29 @@ tauc=fitresult_Qc_3D.tauc;
 taud=fitresult_Qc_3D.taud;
 Qsat=fitresult_Qc_3D.Q_sat;
 fit_3d_function=@(t_c,t_d) Qsat*(1-exp(-1./(tauc./(3*t_c)+taud./(3*t_d))));
-% preparation for Q discharge fit
-% [x_Qd_fit_3D, y_Qd_fit_3D,z_Qd_fit_3D] = prepareSurfaceData( charge_times_fit, charge_times_fit, Q_discharge_measured_fit );
-% fit_Qd_3D = fittype( 'Q_sat*(1-exp(-1/(tauc/tc+taud/td)))', 'independent', {'tc', 'td'}, 'dependent', 'z' );
-% opts_Qd_3D = fitoptions( 'Method', 'NonlinearLeastSquares' );
-% opts_Qd_3D.Display = 'Off';
-% opts_Qd_3D.Lower = [min(Q_charge_measured) 0 0];
-% opts_Qd_3D.StartPoint = [initial_Q_sat  initial_tau_guess initial_tau_guess];
-% opts_Qd_3D.Upper = [1000 5000 5000];
-% opts_Qd_3D.Exclude = Q_discharge_measured_fit_exclude;
-% [fitresult_Qd_3D, gof_Qd_3D] = fit([x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D, fit_Qd_3D, opts_Qd_3D )
+fit_3d_Qc_figure.Children.XTick=charge_heat;
+fit_3d_Qc_figure.Children.YTick=discharge_heat;
+%%  Q discharge fit
+
+[x_Qd_fit_3D, y_Qd_fit_3D,z_Qd_fit_3D] = prepareSurfaceData( charge_times_fit, charge_times_fit, Q_discharge_measured_fit );
+fit_Qd_3D = fittype( 'Q_sat*(1-exp(-1/(tauc/tc+taud/td)))', 'independent', {'tc', 'td'}, 'dependent', 'z' );
+opts_Qd_3D = fitoptions( 'Method', 'NonlinearLeastSquares' );
+opts_Qd_3D.Display = 'Off';
+opts_Qd_3D.Lower = [min(Q_charge_measured) 0 0];
+opts_Qd_3D.StartPoint = [initial_Q_sat  initial_tau_guess initial_tau_guess];
+opts_Qd_3D.Upper = [1000 20000 20000];
+opts_Qd_3D.Exclude = excludedata(discharge_times_fit,discharge_times_fit,'indices',find(Q_discharge_measured_fit_exclude));
+[fitresult_Qd_3D, gof_Qd_3D] = fit([x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D, fit_Qd_3D, opts_Qd_3D )
+fit_3d_Qd_figure=figure('Name','Q discharged [C]');
+fit_surf_Qd_plot=plot(fitresult_Qd_3D,[x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D,'Exclude',opts_Qd_3D.Exclude);
+annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qd_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qd_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qd_3D.taud) ' [s]']},'FitBoxToText','on')
+xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
+savefig(fit_3d_Qd_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
+saveas(fit_3d_Qd_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
+fit_3d_function=@(t_c,t_d) -Qsat*(1-exp(-1./(tauc./(3*t_c)+taud./(3*t_d))));
+fit_3d_Qd_figure.Children.XTick=charge_heat;
+fit_3d_Qd_figure.Children.YTick=discharge_heat;
+
 
 %% correcting the Q matrix
 measured_charge_time_mesh=charge_mesh;
@@ -849,7 +914,7 @@ Q_new(2:end,2:end)=Q_extrapulated;
 % zero_indice(indice_to_delete,:)=[];
 
 %% writing Q&tau to excel file
-Q_tau_table=table(1,2,3,4,5,6,7,8,'VariableNames',{'times','Q_sat_by_charging_time','tau_by_charging_time','Q_sat_by_discharging_time','tau_by_discharging_time','deposition_time','sample_name','charge_potential'});
+Q_tau_table=table(1,2,3,4,5,6,7,8,'VariableNames',{'times','Q_sat_by_charging_time_const_td','tau_by_charging_time_const_td','Q_sat_by_discharging_time_const_tc','tau_by_discharging_time_const_tc','deposition_time','sample_name','charge_potential'});
 Q_tau_table.times(1:numel(charge_times))=charge_times;
 Q_tau_table(1:end,2:5)=array2table([row_Q_sat; row_tau; column_Q_sat; column_tau]');
 %Q_tau_table.sample_name=sample_name_ui.String;
@@ -914,6 +979,25 @@ end
 %% save the heat map figures
 savefig(Q_figure,[where_to_save_figures ' ' sample_name_ui.String ' Q.fig'])
 saveas(Q_figure,[where_to_save_images ' ' sample_name_ui.String ' Q'],'png')
+
+%% display difference in Q charge and discharge
+avg_Q_figure=figure('Name','Average of Qc & Qd');
+Q_avg(:,:,1)=Q_charge_measured_fit;
+Q_avg(:,:,2)=Q_discharge_measured_fit;
+% mesh(charge_heat,discharge_heat,mean(Q_avg,3),'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto',')
+
+Delta_Q_figure=figure;
+Delta_Q=Q_charge_measured_fit-Q_discharge_measured_fit
+hold on
+% surf(charge_mesh,discharge_mesh,Delta_Q,'DisplayName','\Delta Q_c Q_d','Marker','o','MarkerFaceColor','auto')
+colorbar
+view([-0.5 -0.5 0.25])
+normalizeQdivQ_avg=Delta_Q./Q_avg;
+
+%mesh(charge_mesh,discharge_mesh,Delta_Q./Q_avg,'DisplayName','\Delta Q_c Q_d % of Q_{avg}')
+legend show
+hold off
+
 %% plot the other heat maps
 total_time_matrix=charge_time_matrix+discharge_time_matrix+demixing_time;
 j=zeros(size_z(1)+1,size_z(2)+1);
@@ -1165,39 +1249,3 @@ function a=analyze_OP()
         end
     delete('for_OP.mat')
 end
-%% show Q&tau for different measurements
-
-% qtau_opts=fitoptions( 'Method', 'NonlinearLeastSquares' );
-% qtau_opts.Display = 'Off';
-% qtau_opts.Lower = [0 0];
-% qtau_opts.StartPoint = [initial_Q_sat initial_tau_guess];
-% qtau_opts.Upper = [1000 5000];
-% ft_qtau_q = fittype( 'q_sat*(1-exp(-(1/tau)*x))', 'independent', 'x', 'dependent', 'y');
-% ft_qtau_q_linear = fittype( 'a*x+b', 'independent', 'x', 'dependent', 'y');
-% clear fit_qtau_qchrg fit_qtau_qdischrg fit_qtau_time
-% fit_qtau_time=charge_times;
-% fit_qtau_qchrg=Q_tau_table.Q_sat_by_charging_time;
-% fit_qtau_qdischrg=Q_tau_table.Q_sat_by_discharging_time;
-% 
-% [fitresult_qtau_qchrg, gof_qtau_qchrg] = fit( fit_qtau_time, fit_qtau_qchrg, ft_qtau_q,qtau_opts);
-% [fitresult_qtau_disqchrg, gof_qtau_disqchrg] = fit( fit_qtau_time, fit_qtau_qdischrg, ft_qtau_q,qtau_opts);
-% 
-% fit_qsat_figure=figure;
-% fit_function=@(a,b,t) a*(1-exp(-t/b));
-% t_for_calc_plots=linspace(0,Q_tau_table.times(end),1000);
-% hold on
-% q_sat_by_chrg_plot=plot(Q_tau_table.times,Q_tau_table.Q_sat_by_charging_time,'o-','DisplayName','Q_{sat} fitted by constant charging time calculated');
-% q_sat_by_chrg_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_qtau_qchrg.q_sat,fitresult_qtau_qchrg.tau,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by constant charging time','Color',q_sat_by_chrg_plot.Color);
-% 
-% q_sat_by_dischrg_plot=plot(Q_tau_table.times,Q_tau_table.Q_sat_by_discharging_time,'o-','DisplayName','Q_{sat} fitted by constant discharging time');
-% q_sat_by_dischrg_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_qtau_disqchrg.q_sat,fitresult_qtau_disqchrg.tau,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by constant discharging time - calculated','Color',q_sat_by_dischrg_plot.Color);
-% 
-% q_sat_by_diag_plot=plot(Q_tau_table.times,fit_func_diag(fitresult_diag.a,fitresult_diag.b,Q_tau_table.times),'o-','DisplayName','Q_{sat} fitted by the diagonal');
-% q_sat_by_diag_plot_calc=plot(t_for_calc_plots,fit_function(fitresult_diag.a,fitresult_diag.b,t_for_calc_plots),'--','DisplayName','Q_{sat} fitted by gradient','Color',q_sat_by_diag_plot.Color);
-% legend show
-% xticks(Q_tau_table.times)
-% xlabel 'time of charging [s]'
-% ylabel 'Charge [C]'
-% hold off
-% savefig(fit_qsat_figure,[where_to_save_figures 'fitting figure.fig'])
-% 
