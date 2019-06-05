@@ -112,7 +112,7 @@ fclose(FID);
 
 C_to_kg=0.00398;%*Q %0.0813 density[kg/m^3]*2Q*R*298K/1 atm    RT! m^3/mol
 %% GUI
-ziv_version=1.07;
+ziv_version=1.09;
 if exist('logo.png')==0
     emd_logo(1:68,1:443,1:3)=255;
 else
@@ -120,7 +120,7 @@ else
 end
 x_pos=.05; text_w=.5; text_h=.07; height_interval=.07; initial_height=1-text_h; %initial position and size for text fields
 
-uif=figure('name','Parameters and options','Units','normalized','Position',[0.25 0.05 0.5 0.85]);
+uif=figure('name','Parameters and options, Work best on MATLAB=>2018B','Units','normalized','Position',[0.25 0.05 0.5 0.85]);
 image_panel=uipanel(uif,'Units','normalized','Position',[0 0.92 1 0.08],'BackgroundColor','w');
 set(gcf,'units','pixels'); fig_width=get(gcf,'Position');
 ax=axes('Parent',image_panel,'Units','pixels','Position',[(fig_width(3)-size(emd_logo,2))/2 0 size(emd_logo,2) size(emd_logo,1)]);
