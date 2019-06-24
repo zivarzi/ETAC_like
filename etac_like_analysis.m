@@ -851,8 +851,8 @@ fit_3d_Qc_figure=figure('Name','Q charged [C]');
 fit_surf_Qc_plot=plot(fitresult_Qc_3D,[x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D,'Exclude',opts_Qc_3D.Exclude);
 annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qc_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qc_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qc_3D.taud) ' [s]']},'FitBoxToText','on')
 xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
-savefig(fit_3d_Qc_figure,[where_to_save_figures '' sample_name_ui.String ' 3d Qc fit.fig'])
-saveas(fit_3d_Qc_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d Qc fit'],'png')
+savefig(fit_3d_Qc_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
+saveas(fit_3d_Qc_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
 end
 
 
@@ -881,8 +881,8 @@ fit_3d_Qd_figure=figure('Name','Q discharged [C]');
 fit_surf_Qd_plot=plot(fitresult_Qd_3D,[x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D,'Exclude',opts_Qd_3D.Exclude);
 annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qd_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qd_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qd_3D.taud) ' [s]']},'FitBoxToText','on')
 xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
-savefig(fit_3d_Qd_figure,[where_to_save_figures '' sample_name_ui.String ' 3d Qd fit.fig'])
-saveas(fit_3d_Qd_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d Qd fit'],'png')
+savefig(fit_3d_Qd_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
+saveas(fit_3d_Qd_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
 fit_3d_function=@(t_c,t_d) -Qsat*(1-exp(-1./(tauc./(3*t_c)+taud./(3*t_d))));
 fit_3d_Qd_figure.Children.XTick=charge_heat;
 fit_3d_Qd_figure.Children.YTick=discharge_heat;
@@ -993,11 +993,16 @@ saveas(Q_figure,[where_to_save_images ' ' sample_name_ui.String ' Q'],'png')
 avg_Q_figure=figure('Name','Average of Qc & Qd');
 Q_avg(:,:,1)=Q_charge_measured_fit;
 Q_avg(:,:,2)=Q_discharge_measured_fit;
+<<<<<<< HEAD
 surf(charge_heat,discharge_heat,mean(Q_avg,3))%,'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto')
+=======
+% mesh(charge_heat,discharge_heat,mean(Q_avg,3),'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto',')
+
+>>>>>>> parent of cfed2bf... 
 Delta_Q_figure=figure;
 Delta_Q=Q_charge_measured_fit-Q_discharge_measured_fit
 hold on
-surf(charge_mesh,discharge_mesh,Delta_Q,'DisplayName','\Delta Q_c Q_d','Marker','o','MarkerFaceColor','auto')
+% surf(charge_mesh,discharge_mesh,Delta_Q,'DisplayName','\Delta Q_c Q_d','Marker','o','MarkerFaceColor','auto')
 colorbar
 view([-0.5 -0.5 0.25])
 normalizeQdivQ_avg=Delta_Q./Q_avg;
