@@ -370,7 +370,8 @@ elseif isnumeric(str2num(csv_list.filename{main_i})) % from biologic
     end
     number_of_peaks=size(local_max_ind,2)-2;
     open_cell_time=open_cell_time(1);
-    t_to1=find(II~=0);
+    
+    t_to1=find(II~=0); %threshhold=10^-6
     indices_to1=find(t_to1(2:end)-t_to1(1:end-1)~=1)+1;
     clear t_int t_int_charge t_int_discharge
     j=1;
@@ -838,6 +839,10 @@ opts_Qc_3D.Lower = [min(Q_charge_measured) 0 0];
 opts_Qc_3D.StartPoint = [initial_Q_sat  initial_tau_guess initial_tau_guess];
 opts_Qc_3D.Upper = [1000 20000 20000];
 opts_Qc_3D.Exclude=excludedata(charge_times_fit, charge_times_fit,'indices',find(Q_charge_measured_fit_exclude));%Prepare excluded point for the format
+if exist([path_of_folder '\Qc exclude.xlsx'])
+    Qc_indice_to_exclude=xlsread([path_of_folder '\Qc exclude.xlsx']);
+    opts_Qd_3D.Exclude=excludedata(charge_times_fit, charge_times_fit,'indices',Qc_indice_to_exclude);
+end
 [fitresult_Qc_3D, gof_Qc_3D] = fit([x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D, fit_Qc_3D, opts_Qc_3D );
 
 
@@ -858,15 +863,19 @@ fit_3d_function=@(t_c,t_d) Qsat*(1-exp(-1./(tauc./(3*t_c)+taud./(3*t_d))));
 fit_3d_Qc_figure.Children.XTick=charge_heat;
 fit_3d_Qc_figure.Children.YTick=discharge_heat;
 %%  Q discharge fit
-
+    
 [x_Qd_fit_3D, y_Qd_fit_3D,z_Qd_fit_3D] = prepareSurfaceData( charge_times_fit, charge_times_fit, Q_discharge_measured_fit );
-fit_Qd_3D = fittype( 'Q_sat*(1-exp(-1/(tauc/tc+taud/td)))', 'independent', {'tc', 'td'}, 'dependent', 'z' );
+fit_Qd_3D = fittype( 'Q_sat*(1-exp(-1/(tauc/(3*tc)+taud/(3*td))))', 'independent', {'tc', 'td'}, 'dependent', 'z' );
 opts_Qd_3D = fitoptions( 'Method', 'NonlinearLeastSquares' );
 opts_Qd_3D.Display = 'Off';
 opts_Qd_3D.Lower = [min(Q_charge_measured) 0 0];
 opts_Qd_3D.StartPoint = [initial_Q_sat  initial_tau_guess initial_tau_guess];
 opts_Qd_3D.Upper = [1000 20000 20000];
 opts_Qd_3D.Exclude = excludedata(discharge_times_fit,discharge_times_fit,'indices',find(Q_discharge_measured_fit_exclude));
+if exist([path_of_folder '\Qd exclude.xlsx'])
+    Qc_indice_to_exclude=xlsread([path_of_folder '\Qd exclude.xlsx']);
+    opts_Qd_3D.Exclude=excludedata(charge_times_fit, charge_times_fit,'indices',Qc_indice_to_exclude);
+end
 [fitresult_Qd_3D, gof_Qd_3D] = fit([x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D, fit_Qd_3D, opts_Qd_3D )
 fit_3d_Qd_figure=figure('Name','Q discharged [C]');
 fit_surf_Qd_plot=plot(fitresult_Qd_3D,[x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D,'Exclude',opts_Qd_3D.Exclude);
@@ -984,7 +993,7 @@ saveas(Q_figure,[where_to_save_images ' ' sample_name_ui.String ' Q'],'png')
 avg_Q_figure=figure('Name','Average of Qc & Qd');
 Q_avg(:,:,1)=Q_charge_measured_fit;
 Q_avg(:,:,2)=Q_discharge_measured_fit;
-%mesh(charge_heat,discharge_heat,mean(Q_avg,3),'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto',')
+surf(charge_heat,discharge_heat,mean(Q_avg,3))%,'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto')
 Delta_Q_figure=figure;
 Delta_Q=Q_charge_measured_fit-Q_discharge_measured_fit
 hold on
