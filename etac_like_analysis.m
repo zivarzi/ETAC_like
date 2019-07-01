@@ -112,7 +112,7 @@ fclose(FID);
 
 C_to_kg=0.00398;%*Q %0.0813 density[kg/m^3]*2Q*R*298K/1 atm    RT! m^3/mol
 %% GUI
-ziv_version=1.09;
+ziv_version=1.1;
 if exist('logo.png')==0
     emd_logo(1:68,1:443,1:3)=255;
 else
@@ -360,23 +360,27 @@ elseif isnumeric(str2num(csv_list.filename{main_i})) % from biologic
     charge_time=str2num(cell_of_times{1});
     discharge_time=str2num(cell_of_times{2});
     clear cell_of_times
+%     cutoff_index=find(II>0.01);
+%        tt=tt(48:end);
+%        II=II(48:end);
         %starting maximum & minimum
-	local_max_ind(1)=open_cell_time(1)/dt;local_max_ind(1)=open_cell_time(1)/dt;
+	%local_max_ind(1)=open_cell_time(1)/dt; local_max_ind(1)=open_cell_time(1)/dt;
+    local_max_ind(1)=open_cell_time/dt;
     local_max_tt(1)=tt(local_max_ind(1));
-    cycle_time=sum(open_cell_time)+charge_time+discharge_time;
-    while local_max_ind(end)<numel(tt);
+    cycle_time=2*sum(open_cell_time)+charge_time+discharge_time;
+    while local_max_ind(end)<numel(tt)
         local_max_ind(end+1)=local_max_ind(end)+cycle_time/dt;
-        local_max_tt(end+1)=tt(local_max_ind(1));
+        if local_max_ind(end)<numel(tt)
+            local_max_tt(end+1)=tt(local_max_ind(end));
+        end
     end
-    number_of_peaks=size(local_max_ind,2)-2;
+    number_of_peaks=size(local_max_ind,2)-1;
     open_cell_time=open_cell_time(1);
-    
     t_to1=find(II~=0); %threshhold=10^-6
     indices_to1=find(t_to1(2:end)-t_to1(1:end-1)~=1)+1;
     clear t_int t_int_charge t_int_discharge
     j=1;
     row_number=1;
-
     for i=1:numel(t_to1)-1
         if t_to1(i+1)-t_to1(i)==1
             t_int{row_number}(j)=t_to1(i);  
@@ -390,21 +394,22 @@ elseif isnumeric(str2num(csv_list.filename{main_i})) % from biologic
     for i=1:size(t_int,2)/2
     t_int_charge{i}=t_int{2*i-1};
     t_int_discharge{i}=t_int{2*i};
-    end
-    i=numel(t_int_discharge{end});
-    t_int_discharge{end}=t_int_discharge{end}(1:i);
+     end
+     i=numel(t_int_discharge{end});
+     t_int_discharge{end}=t_int_discharge{end}(1:i);
     % plots
-    figure
-    plot(tt,II)
-    hold on
-    for i=1:size(t_int_charge,2)
-    Q(i)=trapz(t_int_charge{i}*dt,II(t_int_charge{i}));
-    Q_dis(i)=trapz(t_int_discharge{i}*dt,II(t_int_discharge{i}));
+%     figure
+% %     plot(tt,II)
+%     hold on
+%     for i=1:number_of_peaks
+%         t_charge_to_int=local_max_ind(i):(local_max_ind(i)+(charge_time/dt));
+%         t_discharge_to_int=(local_max_ind(i)+charge_time+open_cell_time):(local_max_ind(i)+(charge_time+open_cell_time+discharge_time/dt));
+%         Q(i)=trapz(tt(t_charge_to_int),II(t_charge_to_int));
+%         Q_dis(i)=trapz(t_discharge_to_int,II(t_discharge_to_int));
 %         area(t_int_charge{i}*dt,II(t_int_charge{i}))
 %         area(t_int_discharge{i}*dt,II(t_int_discharge{i}))
-    end
+%     end
 else
-        %% setting parameters and getting the graphical input
     dist=tt(end)/number_of_peaks; %distance from each point
     pts=linspace(open_cell_time/dt,tt(end)*(0.7+.1*number_of_peaks/5),number_of_peaks); %50 is 10 seconds of open cell * interval between 
     x_pts=sort(pts); %get only the x values add (:,1) for ginput
@@ -413,7 +418,7 @@ else
     catch 
         x_pts_ind=knnsearch(tt,x_pts);    
     end
-    %% findind the local maximum points
+    % findind the local maximum points
     threshold_for_first_max=1E-2; %mA
     threshold_for_first_max=define_treshold_I_for_maximum_num;
     clear temp_tt temp_II temp_tt_ind     
@@ -443,9 +448,8 @@ else
                 local_max_ind(i)=min(temp_ind(true_ind)); %Taking the first temp index
                 local_max_tt(i)=tt(local_max_ind(i));
             end
-        end
-
-    %% findind the charge & discharge times
+    end
+    % findind the charge & discharge times
         %for j=1:number_of_peaks
         minimal_threshold=define_treshold_I_for_maximum_num;
         j=1;
@@ -463,7 +467,8 @@ else
         open_cell_time=find(II>minimal_threshold);
         open_cell_time=(open_cell_time(1)-1)*dt; %[s]
 end
-    %% writing the charge and discharge time to the table
+
+%% writing the charge and discharge time to the table
     lower_measurement_time=50;
     if or(charge_time<lower_measurement_time,discharge_time<lower_measurement_time)
         figure('Name','define_times_figure');
@@ -484,18 +489,42 @@ end
     clear t_to_int
     t_to_int_row=[];
     for i=1:number_of_peaks
-        t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-1; %the last term gives the index
-        t_to_int(i,:)=uint64(t_to_int(i,:));
-        % just ot check the indices [num2str(i) ' ' num2str(t_to_int(i,1)) ' ' num2str(t_to_int(i,end)) ' ' num2str(t_to_int(i,end)-t_to_int(i,1))]
-        Q(i)=trapz(tt(t_to_int(i,:)),II(t_to_int(i,:)));
-        t_to_int_row=[t_to_int_row t_to_int(i,:)];
+        if exist('t_int_charge')
+            t_to_int(i,:)=t_int_charge{i};
+        else
+            t_to_int(i,:)=local_max_ind(i)-2:local_max_ind(i)+charge_time/dt-1; %the last term gives the index
+            t_to_int(i,:)=uint64(t_to_int(i,:));
+            % just ot check the indices [num2str(i) ' ' num2str(t_to_int(i,1)) ' ' num2str(t_to_int(i,end)) ' ' num2str(t_to_int(i,end)-t_to_int(i,1))]
+            t_to_int_row=[t_to_int_row t_to_int(i,:)];
+        end
+	Q(i)=trapz(tt(t_to_int(i,:)),II(t_to_int(i,:)));
     end
     %% findind Q discharge - the logic - the time to integrate is the indices of time to integrate of charging + 1, this is open 
-	clear t_to_int_dis
-    for i=1:number_of_peaks
+    clear t_to_int_dis
+    i=1;
+    t_to_int_dis(i,:)=local_max_ind(i)+(charge_time+open_cell_time)/dt-2:local_max_ind(i)+(charge_time+open_cell_time+discharge_time)/dt-1;
+    for i=2:number_of_peaks
+        if exist('t_int_discharge') %fixes when the last cycle has a little different time
+                %t_to_int_dis(1,:)=t_int_discharge{1};
+                if size(t_to_int_dis,2)~=numel(t_int_discharge{i})
+                    mismatch=size(t_to_int_dis,2)-numel(t_int_discharge{i});
+                    t_to_int_dis(i,:)=linspace(0,0,size(t_to_int_dis,2));
+                    t_to_int_dis(i,1:numel(t_int_discharge{i}))=t_int_discharge{i};
+                    t_to_int_dis(i,end+1-mismatch:end)=t_to_int_dis(i,end-mismatch-mismatch+1:end-mismatch)+3;
+                    if i==number_of_peaks
+                        do_not_over_integrate=t_to_int_dis(end,end)-numel(tt);
+                        for j=0:do_not_over_integrate
+                            t_to_int_dis(i,end-j)=numel(tt);
+                        end
+                    end
+                else
+                t_to_int_dis(i,:)=t_int_discharge{i};
+                end
+        else
         t_to_int_dis(i,:)=local_max_ind(i)+(charge_time+open_cell_time)/dt-2:local_max_ind(i)+(charge_time+open_cell_time+discharge_time)/dt-1;
         % just ot check the indices [num2str(i) ' ' num2str(t_to_int_dis(i,1)) ' ' num2str(t_to_int_dis(i,end)) ' ' num2str(t_to_int_dis(i,end)-t_to_int_dis(i,1))]
         t_to_int_dis(i,:)=uint64(t_to_int_dis(i,:));
+        end
         Q_dis(i)=trapz(tt(t_to_int_dis(i,:)),II(t_to_int_dis(i,:)));
     end
 %% building the final table
@@ -618,6 +647,10 @@ where_to_save_output(find(where_to_save_output=='.'))='_';
 %% building the heatmap data
 charge_heat=unique(final_data.charge_time);
 discharge_heat=unique(final_data.discharge_time);
+for i=1:numel(charge_heat)
+    rownamess{i}=['c' num2str(charge_heat(i))];
+    varnamess{i}=['d' num2str(discharge_heat(i))];
+end
 [charge_mesh,discharge_mesh]=meshgrid(charge_heat,discharge_heat);
 Q_charge_measured=zeros(numel(unique(final_data.charge_time)));
     if is_etac_checkbox.Value==0
@@ -637,7 +670,6 @@ for i=1:file_number
      end
 end
 
-%  Q_charge_measured=Q_charge_measured';
 %  Q_discharge_measured=Q_discharge_measured;
 %  h2_kg_day=h2_kg_day';
 
@@ -737,7 +769,7 @@ end
         Q_extrapulated(row_number,first_zero_column:end)=fit_func_row(row_Q_sat(row_number),row_tau(row_number),charge_times(first_zero_column:end));
     end
 
-%% extrapulate by const discharge time
+%% extrapulate by const discharge time - no longer in use
 ntau_charge=2;
 initial_Q_sat=50;
 initial_tau_guess=1000;
@@ -806,12 +838,23 @@ end
 Q_charge_measured_fit=Q_charge_measured;
 Q_charge_measured_fit(2:end+1,2:end+1)=Q_charge_measured_fit;
 Q_charge_measured_fit(1,:)=0; Q_charge_measured_fit(:,1)=0;
+
+%Q charge in a table
+Qcharge_measured=array2table(Q_charge_measured_fit);
+Qcharge_measured.Properties.RowNames=rownamess;
+Qcharge_measured.Properties.VariableNames=varnamess;
+%which points to exculde
 Q_charge_measured_fit_exclude=zeros(size(Q_charge_measured_fit));
 Q_charge_measured_fit_exclude(2:end,2:end)=Q_charge_measured==0;
-
+%adding the zero lines
 Q_discharge_measured_fit=abs(Q_discharge_measured);
 Q_discharge_measured_fit(2:end+1,2:end+1)=Q_discharge_measured_fit;
 Q_discharge_measured_fit(1,:)=0; Q_discharge_measured_fit(:,1)=0;
+%Q discharge in a table.
+Qdischarge_measured=array2table(Q_discharge_measured_fit);
+Qdischarge_measured.Properties.RowNames=rownamess;
+Qdischarge_measured.Properties.VariableNames=varnamess;
+
 Q_discharge_measured_fit_exclude=zeros(size(Q_discharge_measured_fit));
 Q_discharge_measured_fit_exclude(2:end,2:end)=Q_discharge_measured==0;
 
@@ -845,23 +888,26 @@ if exist([path_of_folder '\Qc exclude.xlsx'])
 end
 [fitresult_Qc_3D, gof_Qc_3D] = fit([x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D, fit_Qc_3D, opts_Qc_3D );
 
-
 if fit_3D_checkbox.Value==1
 fit_3d_Qc_figure=figure('Name','Q charged [C]');
 fit_surf_Qc_plot=plot(fitresult_Qc_3D,[x_Qc_fit_3D,y_Qc_fit_3D],z_Qc_fit_3D,'Exclude',opts_Qc_3D.Exclude);
 annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qc_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qc_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qc_3D.taud) ' [s]']},'FitBoxToText','on')
 xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
-savefig(fit_3d_Qc_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
-saveas(fit_3d_Qc_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
+savefig(fit_3d_Qc_figure,[where_to_save_figures '' sample_name_ui.String ' 3d Qc fit.fig'])
+saveas(fit_3d_Qc_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d Qc fit'],'png')
 end
-
 
 tauc=fitresult_Qc_3D.tauc;
 taud=fitresult_Qc_3D.taud;
 Qsat=fitresult_Qc_3D.Q_sat;
+clear fit_3d_function
 fit_3d_function=@(t_c,t_d) Qsat*(1-exp(-1./(tauc./(3*t_c)+taud./(3*t_d))));
+x_Qc=x_Qc_extrapulated_fit_3D; y_Qc=y_Qc_extrapulated_fit_3D; ;z_Qc=z_Qc_extrapulated_fit_3D; 
+Qc_extrapulated=Q_charge_measured_fit;
+Qc_extrapulated(find(opts_Qc_3D.Exclude))=fit_3d_function(x_Qc(find(opts_Qc_3D.Exclude)),y_Qc(find(opts_Qc_3D.Exclude)))
 fit_3d_Qc_figure.Children.XTick=charge_heat;
 fit_3d_Qc_figure.Children.YTick=discharge_heat;
+
 %%  Q discharge fit
     
 [x_Qd_fit_3D, y_Qd_fit_3D,z_Qd_fit_3D] = prepareSurfaceData( charge_times_fit, charge_times_fit, Q_discharge_measured_fit );
@@ -881,12 +927,15 @@ fit_3d_Qd_figure=figure('Name','Q discharged [C]');
 fit_surf_Qd_plot=plot(fitresult_Qd_3D,[x_Qd_fit_3D,y_Qd_fit_3D],z_Qd_fit_3D,'Exclude',opts_Qd_3D.Exclude);
 annotation('textbox','BackgroundColor','w','Position',[.8 .7 .2 .2],'String',{['Q_{sat}=' num2str(fitresult_Qd_3D.Q_sat) ' [C]'],['\tau_c=' num2str(fitresult_Qd_3D.tauc) ' [s]'],['\tau_d=' num2str(fitresult_Qd_3D.taud) ' [s]']},'FitBoxToText','on')
 xlabel('Charging time [s]') ; ylabel('Discharging time [s]') ; zlabel('Charge [C]');
-savefig(fit_3d_Qd_figure,[where_to_save_figures '' sample_name_ui.String ' 3d fit.fig'])
-saveas(fit_3d_Qd_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d fit'],'png')
+savefig(fit_3d_Qd_figure,[where_to_save_figures '' sample_name_ui.String ' 3d Qd fit.fig'])
+saveas(fit_3d_Qd_figure,[where_to_save_images ' ' sample_name_ui.String ' 3d Qd fit'],'png')
+clear fit_3d_function
 fit_3d_function=@(t_c,t_d) -Qsat*(1-exp(-1./(tauc./(3*t_c)+taud./(3*t_d))));
 fit_3d_Qd_figure.Children.XTick=charge_heat;
 fit_3d_Qd_figure.Children.YTick=discharge_heat;
-
+x_Qd=x_Qd_extrapulated_fit_3D; y_Qd=y_Qd_extrapulated_fit_3D; ;z_Qd=z_Qd_extrapulated_fit_3D; 
+Qd_extrapulated=Q_charge_measured_fit;
+Qd_extrapulated(find(opts_Qd_3D.Exclude))=fit_3d_function(x_Qd(find(opts_Qd_3D.Exclude)),y_Qd(find(opts_Qd_3D.Exclude)))
 
 %% correcting the Q matrix
 measured_charge_time_mesh=charge_mesh;
@@ -934,7 +983,6 @@ writetable(Q_tau_table,[path_of_folder '\' sample_name_ui.String ' ' charge_pote
 Q_figure=figure('Name','Q charged [C] - amount of charge facilitated for H2 production','Units','normalized','Position',[0.25 0.1 0.5 0.5]);
 Q_tab=uipanel(Q_figure,'Position',[.9 .9 .1 .1]);
 Q_main_axes=axes(Q_figure,'Position',[.05 .05 .85 .9]);
-
 normalized_ui=uicontrol(Q_tab,'Style','checkbox','String','normalized','Units','normalized','Position',[0.1 0.1 0.8 0.8],'Value',1);
 % adding 0
 charge_heat=[0;unique(final_data.charge_time)];
@@ -945,18 +993,19 @@ discharge_time_matrix=discharge_mesh(2:end,2:end);
 measured_x_points=charge_time_matrix(find(Q_charge_measured>0));
 measured_y_points=discharge_time_matrix(find(Q_charge_measured>0));
 hold on
+%changed from Q_new to Q_extrapulated
 if height_lines_checkbox.Value==1
-    [q_heat_map_matrix,q_heat_map]=contourf(charge_mesh,discharge_mesh,Q_new,'Parent',Q_main_axes);
+    [q_heat_map_matrix,q_heat_map]=contourf(charge_mesh,discharge_mesh,Qc_extrapulated,'Parent',Q_main_axes);
     clabel(q_heat_map_matrix,q_heat_map);
 else
-    contourf(charge_mesh,discharge_mesh,Q_new,'LineStyle','none','Parent',Q_main_axes);%,'LevelStep',round(max(max(Q_new)))*0.02);
+    contourf(charge_mesh,discharge_mesh,Qc_extrapulated,'LineStyle','none','Parent',Q_main_axes);%,'LevelStep',round(max(max(Q_new)))*0.02);
 end
 
 scatter(measured_x_points,measured_y_points,'MarkerEdgeColor','w','Parent',Q_main_axes) %show the experimental points
 
 qdata=Q_main_axes.Children(2).ZData;
 if normalized_ui.Value==1
-    Q_figure.Children(2).Children(2).ZData=Q_new/electrode_area;
+    Q_figure.Children(2).Children(2).ZData=Qc_extrapulated/electrode_area;
 end
 hold off
 charge_heat=unique(charge_heat);
@@ -970,13 +1019,12 @@ ylabel('Discharge time [s]')
 xlabel(h, 'Charged Q [C]')
 if plot_kg_day_checkbox.Value==1
     Q_figure.Children(3).Children(2).ZData(2:end,2:end)=h2_kg_day;
-    %Q_figure.CurrentAxes.Children(2).ZData=Q_figure.CurrentAxes.Children(2).ZData(2:end,2:end)
     xlabel(h, 'Produced H_2 [Kg/day]')
     title([figure_title ' , H_2 production [Kg/day]'])
     Q_figure.Children(3).Children(2).XLim=[Q_figure.CurrentAxes.Children(2).XData(1,2) Q_figure.CurrentAxes.Children(2).XData(1,end)];
     Q_figure.Children(3).Children(2).YLim=[Q_figure.CurrentAxes.Children(2).YData(2,1) Q_figure.CurrentAxes.Children(2).YData(end,1)];
 end
-normalized_ui.Callback=['if normalized_ui.Value==1;','Q_figure.Children(3).Children(2).ZData=Q_new/electrode_area;h = colorbar;xlabel(h, ''Charged Q [C]'');','else;','Q_figure.Children(3).Children(2).ZData=Q_new;h = colorbar;xlabel(h, ''Charged Q [C]'');;end'];
+normalized_ui.Callback=['if normalized_ui.Value==1;','Q_figure.Children(3).Children(2).ZData=Q_charge_e/electrode_area;h = colorbar;xlabel(h, ''Charged Q [C]'');','else;','Q_figure.Children(3).Children(2).ZData=Q_new;h = colorbar;xlabel(h, ''Charged Q [C]'');;end'];
 %Q_figure.CurrentAxes.Children(2).LevelStep=str2num(num2str(max(max(Q_figure.CurrentAxes.Children(2).ZData)),2))*0.1;
 %Q_figure.CurrentAxes.Children(2).LevelStep=1;
 if save_Q_data.checkbox.Value==1
@@ -993,16 +1041,18 @@ saveas(Q_figure,[where_to_save_images ' ' sample_name_ui.String ' Q'],'png')
 avg_Q_figure=figure('Name','Average of Qc & Qd');
 Q_avg(:,:,1)=Q_charge_measured_fit;
 Q_avg(:,:,2)=Q_discharge_measured_fit;
-<<<<<<< HEAD
 surf(charge_heat,discharge_heat,mean(Q_avg,3))%,'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto')
-=======
-% mesh(charge_heat,discharge_heat,mean(Q_avg,3),'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto',')
-
->>>>>>> parent of cfed2bf... 
 Delta_Q_figure=figure;
-Delta_Q=Q_charge_measured_fit-Q_discharge_measured_fit
+Delta_Q=Q_charge_measured_fit-Q_discharge_measured_fit;
+DeltaQ=array2table(Delta_Q)
+for i=1:numel(charge_heat)
+    rownamess{i}=['c' num2str(charge_heat(i))];
+    varnamess{i}=['d' num2str(discharge_heat(i))];
+end
+DeltaQ.Properties.RowNames=rownamess;
+DeltaQ.Properties.VariableNames=varnamess;
 hold on
-% surf(charge_mesh,discharge_mesh,Delta_Q,'DisplayName','\Delta Q_c Q_d','Marker','o','MarkerFaceColor','auto')
+surf(charge_mesh,discharge_mesh,Delta_Q,'DisplayName','\Delta Q_c Q_d','Marker','o','MarkerFaceColor','auto')
 colorbar
 view([-0.5 -0.5 0.25])
 normalizeQdivQ_avg=Delta_Q./Q_avg;
@@ -1236,9 +1286,13 @@ Q_excel=array2table(Q_new);
 R_parameter=Q_sat/tauc*60; %[C/min]
 R_table=table(Qsat,tauc,R_parameter)
 writetable(R_table,name_of_excel_data_file,'Sheet','R parameter');
+writetable(Qcharge_measured,name_of_excel_data_file,'Sheet','Q charge','WriteRowNames',1);
+writetable(Qdischarge_measured,name_of_excel_data_file,'Sheet','Q discharge','WriteRowNames',1);
 if exist('RemoveSheet123')~=0
     RemoveSheet123(name_of_excel_data_file);
 end
+
+
 %% delete all the function files
 delete apply_caxis.m caxis_tool.m get_last_gcf.m get_last_ui_position.m unify_figure_files.m vars.mat
 
