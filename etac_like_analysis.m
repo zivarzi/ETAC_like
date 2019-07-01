@@ -647,9 +647,11 @@ where_to_save_output(find(where_to_save_output=='.'))='_';
 %% building the heatmap data
 charge_heat=unique(final_data.charge_time);
 discharge_heat=unique(final_data.discharge_time);
+rownamess{1}='c0';
+varnamess{1}='c0';
 for i=1:numel(charge_heat)
-    rownamess{i}=['c' num2str(charge_heat(i))];
-    varnamess{i}=['d' num2str(discharge_heat(i))];
+    rownamess{i+1}=['c' num2str(charge_heat(i))];
+    varnamess{i+1}=['d' num2str(discharge_heat(i))];
 end
 [charge_mesh,discharge_mesh]=meshgrid(charge_heat,discharge_heat);
 Q_charge_measured=zeros(numel(unique(final_data.charge_time)));
@@ -1044,13 +1046,13 @@ Q_avg(:,:,2)=Q_discharge_measured_fit;
 surf(charge_heat,discharge_heat,mean(Q_avg,3))%,'FaceAlpha',0,'Marker','o','MarkerFaceColor','auto')
 Delta_Q_figure=figure;
 Delta_Q=Q_charge_measured_fit-Q_discharge_measured_fit;
-DeltaQ=array2table(Delta_Q)
+DeltaQ=array2table(Delta_Q);
 for i=1:numel(charge_heat)
     rownamess{i}=['c' num2str(charge_heat(i))];
     varnamess{i}=['d' num2str(discharge_heat(i))];
 end
 DeltaQ.Properties.RowNames=rownamess;
-DeltaQ.Properties.VariableNames=varnamess;
+DeltaQ.Properties.VariableNames=varnamess
 hold on
 surf(charge_mesh,discharge_mesh,Delta_Q,'DisplayName','\Delta Q_c Q_d','Marker','o','MarkerFaceColor','auto')
 colorbar
